@@ -1,0 +1,313 @@
+#+SETUPFILE: https://fniessen.github.io/org-html-themes/setup/theme-readtheorg.setup
+#+STARTUP: showall
+#+EXPORT_FILE_NAME: ../exports/graph-dbs.html
+#+OPTIONS: ^:nil
+
+* [[https://docs.aws.amazon.com/neptune/latest/userguide/intro.html][AWS Neptune]]
+** Highlights from [[https://docs.aws.amazon.com/neptune/latest/userguide/intro.html][user guide]]
+- fast, reliable, fully managed graph database service
+- high-performance graph database engine that is optimized for storing billions of relationships and querying the graph with milliseconds latency.
+- supports the popular graph query languages Apache TinkerPop Gremlin and W3C’s SPARQL, allowing you to build queries that efficiently navigate highly connected datasets.
+- Neptune powers graph use cases such as recommendation engines, fraud detection, knowledge graphs, drug discovery, and network security.
+- Neptune is highly available, with read replicas, point-in-time recovery, continuous backup to Amazon S3, and replication across Availability Zones. Neptune provides data security features, with support for encryption at rest and in transit. Neptune is fully managed, so you no longer need to worry about database management tasks like hardware provisioning, software patching, setup, configuration, or backups.
+** configurations
+- [[https://docs.aws.amazon.com/neptune/latest/userguide/iam-auth-connecting-gremlin-console.html][Connecting to Neptune Using the Gremlin Console with Signature Version 4 Signing]] from local
+- [[https://docs.aws.amazon.com/neptune/latest/userguide/access-graph-gremlin-console.html][Set up the Gremlin Console to Connect to a Neptune DB Instance]] from ec2 (easy)
+** Data transfer
+- [[https://docs.aws.amazon.com/neptune/latest/userguide/bulk-load.html][Loading data into Neptune]]
+- [[https://docs.aws.amazon.com/neptune/latest/userguide/bulk-load-tutorial-format.html][Neptune Load Formats]]
+* Titan on AWS
+** [[https://aws.amazon.com/blogs/startups/amazon-dynamodb-storage-backend-for-titan-distributed-graph-database/#][Aws Dynamo DB Storage backend for titan graph]]
+*** Nice way to build the graph
+*** Didn't prototype this and the reason is that it needs some initial configurations which might take sometime
+*** two different appraches
+**** single item model 
+**** multi item model (may the right fit for us)
+
+* Janus Graph
+** TODO Third Party Providers
+*** Run cloud formation to create the AWS Dynamodb backend for Janus Graph. [[https://github.com/awslabs/dynamodb-janusgraph-storage-backend][link]]
+/this project is not maintained anymore skip this step/
+The cloud formation for the gremlin server there has some issues. Follow the steps here. [[https://bricaud.github.io/personal-blog/janusgraph-running-on-aws-with-dynamodb/][link]]
+
+** Schema and Data Modeling. [[https://docs.janusgraph.org/latest/schema.html][chapter 5]]
+- comprises of vertex labels, edge labels and property keys
+- can be explicity or implicity defined. explicity defining the schema is good as it helps in keeping the graph robust.
+- extending the schema doesn't slow down query answering or database down time.
+- Defining edge labels
+  - edge label names must be unique in the database
+  - the multiplicity of the edge label determines the multiplicity constraint on all the edges of this label. (a maximum number of edges between pairs of vertices)
+  - Multiplicity Settings
+| Multipliciy     | example     |
+|-----------------+-------------|
+| MULTI (default) | transaction |
+| SIMPLE          | friend      |
+| MANY2ONE        | mother      |
+| ONE2MANY        | winner of   |
+| ONE2ONE         | married to  |
+ - Defining property keys
+   - use data type class to determine the data type of a property key. Janus graph will enforce that all the values associate with the key have configured data type thereby ensures the data added to the graph is valid.
+   - you can define your own data types too. refer to section 5.3.1
+   - use cardinality to define the allowed cardinality of the values associated with the key on any given vertex.
+ - edge labels and property keys are together referred as relationship types.
+   - names of relationship types should be unique in the graph, which means that edge labels and property keys cannot have the same name.
+| NAME      | DESCRIPTION                        |
+|-----------+------------------------------------|
+| String    | Character Sequence                 |
+| Character | Individual Character               |
+| Boolean   | true or false                      |
+| Byte      | Byte value                         |
+| Short     | Short Value                        |
+| Integer   | Interger Value                     |
+| Long      | Long Value                         |
+| Float     | 4 byte floating point number       |
+| Double    | 8 byte floating point number       |
+| Geoshape  | Geoshape like point, circle or box |
+| UUID      | Universally unique identifier      |
+
+| Cardinality      | Description                                                             | Example         |
+|------------------+-------------------------------------------------------------------------+-----------------|
+| SINGLE (default) | Allows one value per element                                            | date of birth   |
+| LIST             | Allows an arbitary number of values per element                         | sesnor readings |
+| SET              | Allows multiple values but no duplicate values per element for such key |                 |
+ - Defining vertex labels
+   - Like edges vertices have labels. Unlike edges vertex labels are optional. they are useful to distinguish different types of verticies. ex: user vertex and product vertex.
+   - Although labels are optional at the conceptual and data model level, janus graph assigns all vertices a label ass an internal implementation detail. vertices created by the addVertex methods use janus graph's default label.
+   - Vertex labels are unique in a graph.
+ - Automatic Schema generation ( avoid at all costs )
+   - when an undefined edge label, property key or vertex label is first used it is defined implicitly.
+   - default settings are used when defining something implicitly.
+   - user can control automatic schema creation.
+ - Changes to Schema ( be extremely careful and take precautions given in the docs )
+   - the definition of a property key, edge label or vertex label cannot be changed once committed to the graph, however the names of the schema elements can be changed.
+   - certain things can go wrong during this process. refer to section 5.7
+   - redefining the existing schmea can be done by changing the name of this type to a name that is currently (or will never be) in use. After that a new label or key can be defined with the original name thereby replacing the origial one. this will not effect the vertices, edges and properties previously defined with existing type.
+   - Redefining existing graph elements is not supported online and must be accomplished through batch processing.
+ - Schema Constraints
+   - Allows users to define which 2 vertex labels can be connected by a edge label.
+   - Can be used to make sure the graph matches a domain model.
+   - schema constraints can be enabled by setting schema.constraints=true.
+     - depends on schema.default, if none then an illegal argument exception is thrown for constraint violations else schema constraints are automatically created, but no exception is thrown.
+     - activating it has no impact on the existing data.
+     - these are only applied during the insertion process, therefore reading data is also not affected.
+** Janus Graph Query Language - GREMLIN
+** Configured Graph Factory. [[https://docs.janusgraph.org/latest/configuredgraphfactory.html#overview][chapter 9]]
+
+*** how is it similar & different to janus graph factory?
+- JGF provides access point to your graph by providing a configuration object each time you access the graph. CGF provides an access point to your graph for which you have previously created configurations. CGF also offers access point to manage graph configurations.
+- CGF allows you to manage graph configurations.
+- JanusGraphManager is an internal server component that tracks graph references provided your graphs are configured to use.
+- CGF can only be used if you have configured your server to use ConfigurationGraphManagement API's at server start.
+- Benefits of CGF
+  - only need to supply a string to access your graph as supposed to JGF which requires you to specify the backend you wish each time you connect to the graph.
+  - If your CGF is configured with a distributed storage backend then your graph configurations are available to all janus graph nodes in the cluster.
+
+*** How does CGF work?
+Provides access points in 2 scenarios.
+- You have already created a configuration for your specific graph object using the ConfigurationManagementGraph#createConfiguration. In this case your graph is opened with previously created configuration for your graph.
+- You have created a template configuration using ConfigurationManagementGraph#createTemplateConfiguration. In this scenarion, we create a configuration for the graph you are creating by copying over all the attributes stored in your template configuration and appending the relevant graphName attribute, and we can open the graph according to the specific configuration.
+
+*** Graph Factory
+- Assuming that gremlin server started successfully and ConfigurationManagementGraph was successfully instantiated, then all the apis available on the ConfigurationGraphManagement Singleton will also act upon said.
+- Further more this is the graph that will be used to access the configurations used to create/open graphs.
+- The ConfigurationManagement is a SingleTon that allows you to create/update/remove configurations that you can access your graphs using the ConfiguredGraphFactory
+
+**** Accessing the graphs
+
+- ConfiguredGraphFactory.create('graphName')
+- ConfiguredGraphFactory.open('graphName')
+- ConfiguredGraphFactory.getGraphNames() // JanusGraphFactory.getGraphNames()
+- ConfiguredGraphFactory.drop('graphName')
+
+*** Configuring janus graph server  [[https://docs.janusgraph.org/latest/server.html#first-example-connecting-gremlin-server][Chapter 7]] [[https://docs.janusgraph.org/latest/deployment-scenarios.html][8]] [[https://docs.janusgraph.org/latest/configuredgraphfactory.html][9]].
+
+To be able to use the CGF you must configure your server to use ConfigurationGraphManagement API's. To do this you have to inject a graph variable named " ConfiguredManagementGraph " in your server's YAML's graphs map. 
+
+For example
+#+BEGIN_SRC
+graphManager: org.janusgraph.graphdb.management.JanusGraphManager
+graphs: {
+  ConfigurationManagementGraph: conf/JanusGraph-cql-configurationmanagement.properties
+}
+#+END_SRC
+
+In this example, our ConfigurationManagementGraph will be configured using the properties stored inside conf/JanusGraph-configurationmanagement.properties which for example looks like
+#+BEGIN_SRC 
+gremlin.graph=org.janusgraph.core.ConfiguredGraphFactory
+storage.backend=cql
+graph.graphname=ConfigurationManagementGraph
+storage.hostname=127.0.0.1
+#+END_SRC
+
+*IMP:*
+- the file at //scripts/empty-sample.groovy// binds the traversal objects to the global variables so they are available when someone connects to the gremlin server remotely. 
+  - This is one file that should not be replaced before we actually configured the custom graph and added the schema.
+    - use the file scripts/xxx-setup.groovy to configure and setup the graph with schema
+- However the graph has defined prior to starting the server with the file from the repo as it also contains the g traversal which is a binding to the configured-graph.
+- in the empty-sample.groovy file please the line to the list trav: ConfiguredGraphFactory.open('graphname')
+
+**** Example of creating a new graph.
+- janus-graph is not configured to use configured janus-graph factory by default. Follow the instructions [[https://stackoverflow.com/questions/51594838/janusgraph-please-add-a-key-named-configurationmanagementgraph-to-the-graph][here]] to make it the default.
+
+#+name: creating a new graph
+#+BEGIN_SRC gremlin
+// adding cassandra storage-backend & elasticsearch-backend
+map = new HashMap();
+map.put("storage.backend", "cql");
+map.put("storage.hostname", "127.0.0.1");
+// this below line adds the graph name
+map.put("graph.graphname", "graphname");
+map.put("index.search.backend", "elasticsearch");
+map.put("index.search.hostname", "127.0.0.1");
+map.put("index.search.elasticsearch.transport-scheme", "http");
+ConfiguredGraphFactory.createConfiguration(new MapConfiguration(map));
+#+END_SRC
+
+*** Connecting to the graph from gremlin python
+**** server side (not intended for users)
+- install drivers for python on the janus gremlin server (i think this is no longer necessary in the newer version)
+  - stop the janus server if already running
+  - run ./bin/gremlin-server.sh -i org.apache.tinkerpop gremlin-python 3.4.1
+  - the version of the gremlin-python is the version of the apache tinker pop that is compatible with the janusgraph verison
+  - start the janus server
+**** client side
+- install gremlinpython lib in the python virtual env. The version of the lib should be same as that of thinkerpop compatible with janus graph version.
+- follow the [[https://docs.janusgraph.org/latest/connecting-via-python.html][steps]] from the documentation.
+- Good to know
+  - DriverRemoteConnection takes in several parameters to make the connection.
+    #+BEGIN_SRC 
+    class DriverRemoteConnection(RemoteConnection):
+
+    def __init__(self, url, traversal_source, protocol_factory=None,
+                 transport_factory=None, pool_size=None, max_workers=None,
+                 username="", password="", message_serializer=None,
+                 graphson_reader=None, graphson_writer=None):
+    #+END_SRC
+    - traversal source is the "/trav/" in our case.
+    - if you want to play with the graph use the traversal source "/gods/" which connects to the traditional graph of gods
+   
+** Bulk Loading Data [[https://docs.janusgraph.org/latest/bulk-loading.html][chapter 37]]
+
+*** Use cases
+
+- Moving into janusgraph from another environment.
+- use janus graph as an etl endpoint
+- adding external datasets
+- updating janus graph with results of graph analytics job
+
+*** TODO configurations
+
+- enabling storage.batch-loading will have the biggest +ve impact as it will disable the checks in number of places and assumes the data is consistent.
+- Avoiding ID allocation conflicts. May be not a problem when janus is running on a single instance. ID allocation conflicts are inevitable when id blocks are frequently allocated by janus-graph.
+  - ids.authority.wait-time
+  - ids.renew-timeout
+- optimizing storage, writes and reads (be very careful, read more before experimenting)
+  - storage.buffer-size 
+  - storage.read-attempts
+  - storage.write-attempts
+  - storage.attempt-wait
+- bulkloading strategies
+  - todo
+
+** Indexing
+[[https://docs.janusgraph.org/basics/index-performance/]]
+*** understanding indexes [[https://github.com/JanusGraph/janusgraph/wiki/Indexing][here]]
+*** creating indexes
+Most graphs start their operations from a list of vertices or edges that are identified by their properties. Supports 2 different types of indexes
+- graph index
+  - make global retervial operations efficient on large graphs
+- vertex centric index
+  - speeds up actual traversal through the graph
+
+Janus graph distinguishes between 2 types of indexes.
+- Composite
+  - these are very fast and efficient but limited to equality conditions, for a particular previously defined combination of vertex keys
+- Mixed
+  - Can be used for look ups on any combination of indexed keys and support multiple condition predicates in addition to equality depending on the backing index store
+ 
+Indexes are created through janus graph management system and index builder returned by JanusGraphManagement.buildIndex(String, class) where 1st arg is the name of the index and the second arg is the type of element to be indexed on (eg. Vertex.class)
+- The name of the graph index in unique.
+- Graph indexes built against newly defined property keys (keys that are defined  in the same mgmt transaction as index) are available immediately.
+- Same applies to graph indexes that are constrained to a label.
+- Graph indexes built against property keys that are already in use without being constrained to a newly created label requires a execution of reindex procedure to ensure the index contains all the previously added elements. Index will be available after the reindex is completed.
+  - it is good to define graph indexes in the same transaction as the schmea but when bulk loading this not advisable.
+*** removing index [[https://docs.janusgraph.org/latest/index-admin.html#mr-index-removal][chapter 36.2]]
+Remove index consists of 2 stages.
+- changing the index state to disabled. JanusGraph signals to all others via the storage backend that the index is slated for deletion.
+  - at this point janus graph stops using the index
+  - index-related data in the backend remains stale but ignored.
+- Depending on whether the index is mixed or composite
+  - composite: A composite index can be deleted via JanusGraph.
+  - mixed: A mixed index needs to deleted via the backend. JanusGraph currently (0.4.0) doesnot suport this.
+*** stuck indexes
+- stack overflow titan db ignoring index. [[https://stackoverflow.com/questions/40585417/titan-db-ignoring-index/40591478#40591478][here]]
+** online help
+ - google-groups
+   - [[https://groups.google.com/forum/#!topic/janusgraph-users/fJTivKcGVV8][how to connect to janus graph of my choice]]
+ - medium.com
+   - [[https://medium.com/@BGuigal/janusgraph-python-9e8d6988c36c][JanusGraph & Python]]
+ - stack-over flow
+   - [[https://stackoverflow.com/questions/51594838/janusgraph-please-add-a-key-named-configurationmanagementgraph-to-the-graph][adding configuration management to graphs]]
+   - [[https://stackoverflow.com/questions/49462588/custom-id-in-gremlin-python][custom id in graphs]]
+   - [[https://stackoverflow.com/questions/40585417/titan-db-ignoring-index/40591478#40591478][here]]
+ - others
+   - [[https://kgoralski.gitbook.io/wiki/janusgraph]]
+
+
+
+
+
+* Gremlin
+
+** Documentation Notes
+
+*** Crafted Machines
+- Blueprints
+- Pipes
+- Frames
+- Furnace
+- Rexster
+
+
+*** Advantages
+- choosing a TinkerPop-enabled graph and using Gremlin in the correct way when building applications shields them from change and disparity in the space.
+- As a graph provider, choosing to become TinkerPop-enabled not only expands the reach their system can get into different development ecosystems, but also provides access to other query languages through bytecode compilation
+- Gremlin is Gremlin is Gremlin.
+  - It is same when written against an in-memory graph with OLTP or written against Big Graph with OLAP.
+  - It is same either we write it in java or javascript or python or console. Syntactial differences might be language specific. ex. lambda in groovy is different from that in python.
+ 
+** Blogs
+LINK: https://dzone.com/articles/nature-pipes
+
+*** Pipes
+
+Pipes is a lazy evaluation framework in that as the pipeline is iterated for results, the mappings are computing as needed. One of the core methods of Pipe is List Pipe.getPath(). This method returns the transformations that an object underwent through a pipeline. Any gremlin expression has a string representation that exposes the underlying pipes being used to represent the expression.
+
+3 types of Pipes
+- transform: given an object of type S emit an object of type E.
+- filter: Given an object of type S emit it or not.
+- sideEffect: A side-effect pipe implements SideEffectPipe<S,T> and takes an object of type S and emits that object. However, in the process, it yields some computational side-effect that can for instance be used later in the traversal computation. The side-effect object id of type T. The example below makes  use do the most generic side-effect pipe: SideEffectClosurePipe. The example below calculates vertex 1's co-developeres -- that is, those vertices that have worked with vertex 1 on a project. Note that a vertex can not be their own co-developer and thus, sideEffect and filter are used appropriately to express this abstract co-developer and thus, sideEffect and filter are used appropriately to express this abstract co-developer relationship.
+  
+  g.V(1).sideEffect{x=it}.out('created').in('created').filter{it != x}.toString()
+
+*** Branch and Meta Pipes
+There are 2 pipe subtypes that should be discussed: branch and meta pipes. A branch pipe is any pipe that alters the flow of a computation based on some decision criteria. The ifThenElse step of gremlin demonstrates the behaviour of the closure-based ifThenElse Pipe.
+
+The ifThenElse step take 3 closures: a condition-closure, a then-closure and finally, an else-closure. Other branch pipes include copySplit and the respective merging pipes which take multiple branches and yield a single flow: fairMerge and exhaustMerge.
+
+The meta-pipes are perhaps the most bewildering yet most powerful of the pipes in Pipes. A meta-pipe is a pipe that maintains pipes internal to it. As such, the meta-pipe can reson on the results of its internal pipes and then effect an appropriate behavior at the meta-pipe level. To better explain the concept of MetaPipe, backtracking and looping are demonstrated.
+
+g.V(1).out('knows').name.filter{it[0]=='v'}.back(2)
+
+The above code snippet and diagram demonstrate the behaviour of back (BackFilterPipe). If an object reaches back, emit the object that it was n steps ago. In the example above, n is 2 and thus, two steps ago from the string vadas was vertex 2. While this linear sequence articulates backtracking, the diagram below better explains how this computation is implemented in Pipes.
+
+g.V(1).out('knows') --> (2,4)
+g.V(1).out('knows').name --> (vadas, josh)
+g.V(1).out('knows').name.filter{it[0]=='v'} --> (vadas) 
+g.V(1).out('knows').name.filter{it[0]=='v'}.back(2) --> V(2)
+
+It is also possible to use named-steps instead of integers to denote how many steps to back up to. As an expression becomes more complex, using named-steps makes the expression more readable and manageable.
+
+LoopPipe is both a meta-pipe and branch pipe in that is can control the flow of objects and like BackPipe make use of internal pipes during its operations 
+
+g.v(1).out.loop(1){it.loops < 3}

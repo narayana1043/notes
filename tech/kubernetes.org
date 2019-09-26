@@ -1,0 +1,595 @@
+#+SETUPFILE: https://fniessen.github.io/org-html-themes/setup/theme-readtheorg.setup
+#+STARTUP: showall
+#+EXPORT_FILE_NAME: ../exports/kubernetes.html
+#+OPTIONS: ^:nil
+
+* Overview
+** why we need kubernetes and what it can do?
+- service discovery and load balancing
+- storage orchestration
+- automated rollouts and rollbacks
+- automatic bin packing
+- self-healing
+- secrets and configuration management
+
+*** what it is not?
+- it is not a Paas solution. It works at a container level rather than hardware level.
+- doesnot limit the types of applications. supports extremely diverse set of work loads. if an application can run of container it will run great on kubernetes
+- doesnot provide application level services, such as middleware (messaging buses), dataprocessing framework (spark), databases, caches, cluster storage system as built in applications. Such applications can run on kubernetes and/or can be accessed by applications running on kubernetes through protable mechanisms such as the open service broker.
+- doesnot dictate logging, monitoring or alerting solutions. it provides some applications as proof of concept and mechanisms to collect and export metrics
+- etc etc
+- additionally its not a mere orchestration system. it infact elimnates the need for orchestration.
+
+/orchestration/ is technically execution of an workflow. A-->B-->C. In constract kubernetes is a set of independent composable processes that drive the current state towards the desired state. should not matter how you get from A-->C.
+
+** Components
+
+*** Master components
+
+- Provides the clusters control panel. Makes global decisions about the cluster and they detect and respond to the cluster to events.
+- master components can be run independently on any machine in the cluster. however for simplicity set up scripts typically start all master components on the same machine and donot run user containers on the same machine.
+
+**** Kube-api server
+
+- component on the master that exposes that kubernetes api. it front-end of the kubernetes control plane.
+- it is designed to scale horizontally that is it scales by deploying more instances.
+**** etcd
+- consistent and highly available key-value store used as kubernetes backing for all cluster data.
+**** kube-scheduler
+- component on the master that watches newly created pods that have no node assigned, and selects a node for them to run on.
+**** kube-control-manager
+- component on the master that runs controllers.
+- logically each controller is a separate process, but to reduce complexity they are all compiled into a single binary and run in a single process.
+- These controllers include.
+  - Node controller: Responsible for noticing and responding when nodes go down.
+  - Replication controller: Responsible for maintaining the correct number of pods for every replication controller object in the system.
+  - Endpoint controller: populates the endpoint objects. (that is joins service and pods)
+  - Service account & token controllers: create default accounts and API access tokens for new namespaces.
+**** TODO cloud-control-manager
+*** Node components
+Node components run on node, maintaining running pods and providing the kubernetes runtime env.
+**** kubelet
+An agent that runs on each node in a cluster. it make sures that containers are running in a pod. A kublet takes a set of PodSpecs that are provided through various mechanisms and ensures that containers described in those PodSpecs are running and healthy. The kubelet doesn't manage containers which are not created by kebernetes.
+**** kube-proxy
+kube-proxy is a network proxy that runs on each node in your cluster, implementing part of the kubernetes service concept. Kube proxy maintains the network rules on nodes. These rules allow network communication to your pods from network sessions inside or outside your cluster.
+**** container-runtime
+Container runtime is a software that is responsible for running containers. Kubernetes supports several container runtimes
+- Docker
+- containerd
+- cri-o
+- rklet
+- any implementation of the kubernetes cri
+*** Add ons
+Addons use kubernetes resources (DaemonSet, Deployment, etc) to implement the cluster features. Because these addons are cluster-level features namespaced resources for addons belong within the kube-system namespace. Some of them are below.
+**** DNS
+while all other addons are not strictly required, all kuberenetes clusters should have a cluster DNS. Cluster DNS is DNS server in addition to other DNS servers in your environment which servers dns records for kubernetes services. Containers started by kuberenets automatically include Cluster DNS in their DNS searches.
+**** Web UI
+Dashboard is a general purpose, web based UI for kubernetes clusters. It allows users to manage and troubleshoot applications running in the cluster as well as the cluster itself.
+**** Container Resource Monitoring
+CRM records generic time-series metrics about the containers and provids a UI for browsing data.
+**** Cluster Level Logging
+A CLL is responsible for saving container logs to a central log stor with search/browsing feature.
+*** Add-ons
+* Architecture
+** Nodes
+
+A node is a worker machine in kubernetes previously know as a minion. A node may be a VM or physical machine, depending on the cluster. Each nodes contains the services to run pods and is managed by the master components. The services on a node include the container runtime, kubelet and kubelet proxy. 
+*** Node Status
+contains the following information.
+- Addresses
+  - Hostname
+  - external ip
+  - internal ip
+- conditions
+  - OutOfDisk
+  - Ready
+  - MemoryPressure
+  - PIDPressure
+  - DiskPressure
+  - NetworkUnAvailable
+- capacity and allocatable
+  - CPU
+  - memory
+  - number of pods that can be scheduled onto the node.
+- info
+  describe general info such as
+  - kubernetes version (kubelet and kube-proxy version)
+  - docker version (if used)
+*** Management
+unlike pods & services node is not externally created by kubernetes, it created externally by cloud providers or it exists in a pool of virtual or physical machines. So when kubernetes creates a node:
+- it creates an object that represents the node.
+- after creation, kubernetes checks wheather the node is vaild or not.
+  - if all the services are running then the node is valid and can be used to run pods.
+- otherwise it is ignored for any cluster activity until it becomes active.
+
+Currently there are 3 interfaces that interact with the kubernetes node interface: node controller, kubelet, kubectl.
+
+**** Node Controller
+It is the master component which manages various aspects of a nodes.
+The node controller has various aspects in node life.
+- first is assigning a CIDR block when the node id registered.
+- keeping node controllers internal list of nodes up to date with the cloud providers list of available machines.
+- when running in a cloud environment, whenever a node is unhealthy the node controller asks the cloud provider if the VM for the node is still available. If not the node controller deletes the node from the list of nodes.
+- Monitoring the node condition. The node controller is responsible for updating the NodeReady condition of NodeStatus to ConditionUnknown when the node becomes unreachable and later evicting all the pods from the node if the node continues to be unreachable. 
+
+**** TODO Self Registration of Nodes
+
+**** Node Capacity
+The capacity of the node is part of node object. Normally node register themselves and report their capacity when creating the node object. Kubernetes scheduler ensures that there are enough resources for all pods on a node. It checks that the sum of the requests of containers on the node is no greater than the node capacity. It includes all the containers started by the kubelet, but doesn't include any containers started by the container runtime nor any process running outside the containers.
+
+** Master-Node Communication
+
+communications paths between the master(api-server) and the kubernetes cluster. 
+
+*** cluster to master
+
+- All communication paths  from the cluster to the master terminate at the apiserver. None of the other master components are desiggned to expose remote services.
+- Nodes should be provisioned with public root ceritificate for the cluster such that they can connect securely to the apiserver along with valid credentials.
+- Pods that wish to connect to the apiserver can do so securely ny leveraging a service account so that kubernetes will automatically inject the public root certificate and a valid bearer token into the pod when it is instantiated. The kubernetes service (in all namespaces) is configured with a virtual IP address that is redirected (via kube-proxy) to the https endpoint on the apiserver.
+- The master components also communicate with the cluster apiserver over the secure port.
+- As a result the default operating mode for connections from the cluster (nodes and pods running on the nodes) to the amster is secured by default and can run over untrusted and/or public networks.
+
+
+*** Master to Cluster
+
+- 2 primary communication paths from the master(apiserver) to the cluster. 
+  - from the apiserver to the kubelet process which runs on each node in the cluster.
+  - from the apisrver to any node, pod or service through the apiserver's proxy functionality.
+
+**** apiserver to kubelet
+ 
+ these connections are used for:
+ - fetching logs for pods.
+ - attaching (through kubectl) to running pods.
+ - providing the kubeletes port-forwarding functionality
+
+these connectionss terminate at the kubelets https endpoint. By default, the apiserver doesnot verify the kubelets serving cerfificate, which makes the connection subject to man-in-the-middle attacks and unsafe to run over untrusted and/or public netowrks.
+
+***** ssh tunnels (deprecated)
+
+kubernetes supports ssh tunnels to protect the master cluster communication paths. In this configuration, the apisrver initiates an ssh tunnel to each node in the cluster and passes all traffic destined for a kubelet, node, pod or service through the tunnel. This tunnel ensures that the traffic is not exposed outside of the network in which nodes are running.
+
+**** apiserver to nodes, pods and services
+
+the connections from the apiserver to a node, pod or service default to plain HTTP connections and are therefore neither authenticated nor encrypted. They can be run over a secure HTTPS connection by prefixing https: to the node, pod or service name in the API URL, but they will not validate the certificate provided by the HTTPS endpoint nor provide client credentials so while the connection willbe encrypted, it wil not provide any gurantees of integrity. These connections are not currently safe to run over untrusted and/or public networks.
+
+** Concepts underlying the cloud controller manager
+
+The cloud controller manager (CCM) runs alongside with other master components such as the kubernetes controller manager, the API server and scheduler. It can also be started as a kubernetes addon, in which case it runs on top of kubernetes. The cloud controller managers design is based on a plugin mechanism that allows new cloud providrs to integrate with kubernets easily by using plugins. There are plans in place for on-boarding new cloud providres on kuberentes and for migrating cloud providres from the old model to the new CCM model.
+
+- Architecture of kubernetes cluster without the CCM.
+  #+CAPTION: kubernetes cluster without CCM
+  [[./images/kubernetes-cluster-without-ccm]]
+- Architecutre of kubernetes cluster with CCM.
+  #+CAPTION: kubernetes cluster with CCM
+  [[./images/kubernets-cluster-with-ccm]]
+
+  In the architecture without CCM, Kuberenetes and the cloud provider are integrated through several different components.
+  - Kubelet
+
+  - kubernetes controller manager
+
+  - kuberentes API server
+
+The CCM consolidates all of the cloud-dependent logic from the preceding 3 componenets to create single point of integration with the cloud. 
+
+*** Components of the CCM
+
+The CCM breaks away some of the funcationality of kubernets controller manager (KCM) and runs it as a separate process. Specifially, it breaks away those controllers in the KCM that are cloud dependent. The KCM has the following cloid dependent controller loops:
+- Node Controller
+- Volume Controller
+- Route Controller
+- Service Controller
+
+*** Functions of the CCM
+
+The CCM inherits its functions for components of kubernetes that are dependent on a cloud provider.
+
+**** Kubernetes Controller Manager
+
+The majority of the CCMs functions are derived from the KCM. As mentioned in the previous section, the CCM runs the following control loops
+- Node controller
+- Route controller
+- Service controller
+
+***** Node Controller
+initializing a node by obtaining information about the nodes running in the custer from the cloud provider.
+
+Functions
+- initialize a node with cloud specific zone/region labels.
+- initialize a node with cloud specific instance details, for example, type and size.
+- obtain the nodes network addresses and hostname
+- In case a node becomes unresponsive, check the cloud to see if the node has been deleted from the cloud. If the node has been deleted from the cloud, delete the kubernetes Node object.
+
+***** Route Controller
+The route controller is responsible configuring rotes in the cloud appropriately so that containers on different nodes in the kuberenetes cluster can communicate with each other. Only applicable for Google Compute Engines Clusters.
+
+***** Service Controller
+The service controller is reponsible for listening to service create, update and delete events. Based on the current state of the kubernetes, it configures cloud load balancers (ELB, Google LB, Oracle Cloud Infrastructure LB) to reflect the state of the services in Kubernetes.
+
+**** Kubelet
+
+The Node controller contains the cloud-dependent functionality of the kubelet. Prior to the introduction of the CCM, the kubelet was responsible for intializing a node with cloud-specific details such as IP, region/zone labels and instance type information. The introduction of the CCM has moved this initialization operation from the kubelet into the CCM. In the new model the kubelet initializes the node without the cloud specific configuration. However, it adds a taint to the newly created node that makes the node unschedulable until the CCM initializes the node with cloud specific information it then removes this taint.
+
+*** Plugin Mechanism
+The CCM uses Go interfaces to allow implementations from any cloud to be plged in. The implementation of the four shared controllers highlighted above and some scaffolding along with the shared cloudprovider interface, will staty in the kubernetes code. Implementations specific to cloud providres willbe built outside kubernetes coere and implement interfaces defined in the core.
+
+*** Authorization
+breaks down the access required on various API objects by the CCM to perform its operations.
+
+**** Node controller
+The Node controller only works with Node objects. It requires full access to
+- get
+- list
+- create
+- update
+- patch
+- watch
+- delete
+
+**** Route controller
+The route controller listens to Node object creation and configures routes appropriately. It requires 
+- Get
+
+**** Service controller
+The service controller listens to service object
+- create
+- update
+- delete
+then configures the end points for those services appropriately. To access services it requires patch and update access. To setup endpoints for the services, it requires access to
+- list
+- get
+- watch
+- patch
+- update
+
+* Containers 
+
+** Images
+
+ You create your docker images and push it to a registry before referring to it in a kuberenetes pod. The image property of a container supports the same syntax as the docker command does, including private registeries and tags
+ - updating images
+ - building multi-architecture images with manifests
+ - using a private registry
+
+*** TODO updating images
+
+*** TODO building multiarchitecture images with manifest
+
+*** using private registry
+
+Private registeries may require keys to read from them. Credentails can be provided in several ways:
+
+**** using goodle container registry
+- per cluster
+- automatically configured on google compute engine or google kubernetes engine
+- all pods can read the projects private repo
+
+**** using aws ecr
+- use IAM roles and policies to control access to ECR repositories
+- automatically refresh ECR login credentials
+
+**** Configuring the nodes to authenticate to a private registry
+- all pods can read any configured private registries
+- requires node configuration by cluster administrator
+
+**** prepulled images
+- all pods can use any images cached on the node
+- requires root access to all nodes to setup
+
+**** specifying imagePullSecrets on Pod
+- only pods which provide own keys can access the private registry
+
+*** Using amazon elastic container registry
+ kubernetes has native support for the aws ecr, when nodes are aws ec2 instances. Simply use the full image name in the Pod definition. All users of the cluster who can create pods will be able to run pods that use any of the images in the ECR registry. The kubelet will fetch and periodically refresh ECR credentials. (need some permissions to do this)
+
+*** Use Cases
+There are a number of solutions for configuring private registries. Here are some common use cases and suggested solutions.
+
+/note: if you need to access multiple registries you can create one secret for each registry. Kubelet will merge any imagePullSecrets into a single virtual .docker/config.json/
+
+**** Cluster running only non-proprietary images. No need to hide images
+
+- use public images on the docker hub
+  - no configuration need
+  - on GCE a local mirror is automatically used to speed up the look up.
+
+**** Cluster running some properitary images, which should be hidden to those outside the company, but visible to all the users in the company.
+- use a hosted private docker repo
+  - it may be hosted on the docker-hub or elsewhere
+  - manually configure docker/config.json on each node.
+- or run an internal private registry behind your firewall with open read access
+  - no kubernetes configuration is required
+- etc etc
+
+**** cluster with proprietary images, a few of which require stricter access control
+- ensure AlwaysPullImages admission controller is active, Otherwise all Pods of all tenants potentially have access to all images.
+- Run a private registry with authorization required.
+- Generate registry credential for each tenant, put into secret and populate secret to each tenant namespace.
+- The tenant adds the secret to imagePullSecerts of each namespace.
+
+** Container Runtime Variables
+
+*** Container Env
+The kubernetes container env provides several important resources to containers.
+- A file system, which is a combination of an image and one or more volumes.
+- Information about the container itself
+- Information about other objects in the cluster
+
+*** Container Information
+- The hostname of a container is the name of the Pod in which the container is running. It is available through the hostname command or the gethostname function call in libc.
+- The Pod name and namespace are available as environment variables through the downward API.
+- User defined environment variables from the Pod definition are also available to the container as are any environment variables specified statically in the docker image.
+
+*** Cluster Informatin
+A list of all services that were running when a container was created is availble to that container as environment variables. Those env variables match the syntax of Docker links. Services have dedicated IP address and are available to the container via DNS, if DNS addon is enabled.
+
+** Runtime Class
+RuntimeClass is a feature for selecting the container runtime configuration. The container runtime configuration is used to run a Pods containers.
+*** Motivation
+- You can set a different RuntimeClass between different Pods to provide a balance of performance versus security. For example, if part of your workload deservers a highlevel of information security assurance, you might choose to schedule those pods so that they run in a container runtime that uses hardware virtualization. You did then benefit from the extra isolation of the alternative runtime, at the expense of some additional overhead.
+- You can also use RuntimeClass to run different Pods with the same container runtime but with different settings.
+** Container Lifecycle Hooks
+how kubelet managed containers can use the container lifecycle hook framework to run code triggered by events during their management lifecycle. The hooks enable containers to be aware do events in their management lifecycle and run code implemented in a handler when the corresponding lifecycle hook is executed.
+*** Container Hooks
+Ther are 2 hoks that are exposed to containers
+- PostStart
+- PreStop
+*** Hook Handlers
+Containers can access a hook by implementing and registering a handler for that hook. There are 2 types of hook handlers that can be implemented for containers.
+- Exec: executes a specific command, such as pre-stop.sh, inside the cgroups and namespaces of the contianer.
+- HTTP: Executes an HTTP request against a specific endpoint on the container.
+
+* Workloads
+
+** Pods
+
+*** Pod Overview
+
+**** understanding
+- A pod is a basic unit of kubernetes application - the smallest and simplest unit in kuberenetes object model that you create or deploy. A pod represents process running in your cluster.
+- It encapsulates an applications container or containers, storage resources, unique network IP and options that govern how the containers should run. A pod represents a unit of deployment: single instance of an application in kubernetes, which might contain a single container or small number of containers that are tightly copuled and that share resources.
+  - Docker is the most famous container runtime in kuberenets Pod
+- Pods in kuberenets cluster can be used in 2 main ways
+  - Pods that run a single container.
+    - this is the most common use case.
+    - Here Pods act like a wrapper around a container and kubernetes manages pods rather than containers directly
+  - Pods that run multiple containers that need to work together.
+    - The co-located containers might form a single cohesive unit of service-one container serving files from a shared volume to the public, while a separate "sidecar" container refreshes or updates those files. The pod wraps these containers and storage resources together as a single manageable entity.
+  - Each pod is meant to run a single instance of a given application. If you want to scale your application horizontally (eg., run multiple instances), you should use multiple Posaa, one for each instance. In kuberentes this is generally referred to replication. Replicatd Pods are usually created and managed as a group by an abstraction called a controller.
+
+**** how pods manage multiple containers
+Pods are designed to support multiple cooperating processes (as containers) that form a cohesive unit of service. The containers in a Pod are automatically co-located and con-scheduled on the same physical or virtual machine in the cluster. The containers can share resources and dependencies, communicate with one andother when and how they are terminated. (these sort of groupings are advanced use cases).
+
+Some pods have init containers as well as app containers. Init containers run and complete before the app containers are started.
+
+Pods provide 2 kinds of shared resources for their constituent containers:
+- networking: each pod is assigned a unique IP address. Every container in a Pod shares the network namespace and the network ports. Containers in the pod can communicate with one another using localhost.
+- storage: A pod can specify a set of shared storage volumes. All containers in the Pod  can access the shared columes, allowing those containers to share data. Volumes also allow persistent data in a pod to survive in case of the containers with needs to be restarted.
+
+**** Working with Pods
+You'll rarely create individual pods directly in kuberentes-even singleton pods. This is because pods are designed as relatively ephemeral, disposable entities. When a Pod gets created (directly by you or indirectly by controller), it is scheduled to run on a Node in your cluster. The pod remains on that node until the process is terminated, the pod object is deleted, the pod is evicted for lack of resources or the node fails.
+
+Pods do not, by themeseleves, self-heal. If a pod is scheduled to a Node that fails or if the scheduling operation itself fails the Pod is deleted; likewise, a Pod won't survive an eviction due to a lack of resources or Node maintenance. Kubernetes uses a higher-level abstraction called controller, that handles the work of managing the relatively disposable Pod instances. Thus, while it is possible to use Pod directly, it's far more common in kuberenetes to manage your pods using a controller.
+
+**** Pods and controllers
+A controller can create and manage multiple Pods for you, handling replication and rollout and providing seld-healing capabilities at cluster scope. For example, if a Node fails the controller might automatically replace the Pod by scheduling an identical repalcement on different Node.
+
+**** Pod templates
+Pod templates are pod specifications which are included in other objects, such as replication controllers, Jobs and daemon sets. Controllers use Pod templates to make actual pods. Rather than specifying the current desired state of all replicas, pod templates are like cookie cutters. Once a cookie has been cut, the cookie has no relationship to the cutter. There is no "quantum entanglement". Subsequent changes to the template or even switching to a new template has no direct effect on the pods already created. Similarly, pods created by a replication controller may subsequently be updated directly. This is in delibrate contrast to Pods, which do specify the current desired state of all containers belonging to the Pod. This approach radically simplifies system semantics and increases the flexibility of the primitive.
+
+** Motivation for Pods
+
+*** Management
+Pods are a model of the pattern of multiple cooperating processes which form a cohesive unit of service. They simplify application deployment and management by providing higher-level abstraction than the set of their constituent applications. They help in 
+- horizontal scaling
+- replication
+- colocation
+
+The below are automatically handled for a pod
+- shared fate
+- coordinated replication
+- resource sharing
+- dependency management
+
+*** Use of pods
+
+Pods can be used to host vertically integrated application stacks (eg. LAMP), but their primary motivation is to support co-located, co-managed helper programs, such as:
+- content management systems, file and data loaders, local cache managers etc.
+- log, checkpoint backup, compression, rotation, snapshotting etc.
+- data change watchers, log tailers, logging and monitoring adapters, event publishers etc.
+- proxies bridges and adapters
+- controllers, managers, configurators and updaters
+
+In genersal individual pods are not intended to run multiple instances of the same application.
+
+*** Alternatives considered
+why not just run multiple programs in a single (docker) container?
+- Transparency. Making the containers within the Pod visible to the infrastructure enables that infrastructure to provide services to those containers. such as process management and resource monitoring.
+- Decoupling softeare dependencies. The individual containers may be versioned, rebuilt and redeployed independently. Kuberenetes may even supportlive updates od individual containers someday.
+- ease of use. users don't need to run their own process managers, worry about signal and exit=code propagation, etc.
+- Efficiency. Because the infrastructure takes on more responsibility, containers can be lighter weight.
+
+Why not support affinity-based co-scheduling of containers?
+- That approach would provide co-location, but would not provide most of the benefits of Pods, such as resource sharing, IPC, guaranteed fate sharing and simplified management.
+
+*** Durability of pods (or lack thereof)
+- Pods aren't intended to be treated as durable entities. They won't survive scheduling failures, node failures or other evictions, such as due to lack of resources, or in the case of node maintainece.
+- In general, users should not create pods directly. They should almost always use controllers even for singletons. Controllers provide self-healing with a cluster scope, as well as replication and rollout management.
+- Pod is exposed as a primitive in order to facilitate.
+  - scheduler and controller pluggability
+  - suppoet for pod-level operations without the need to "proxy" them via controller APIs
+  - decoupling of Pod lifetime from controller lifetime, such as bootstrapping
+  - decoupling of controllers and services - the endpoint controller just watches Pods
+  - clean composition of Kubelet-level functionality with cluster-level functionality - kubelete is effecitively the "pod controller"
+  - high availability applications which will expect pods to replaced in advance of their terimination and certainly in adavance of deletion, such as in the case of planned evictions or image prefecting.
+
+*** Termination of Pods
+
+Because Pods represent running processes on nodes in the cluster, it is important to allow those processes to gracefully terminate when they are no longer needed (vs being violently killed with KILL signal and having no chance to clean up). Users should be able to request deletion and know when processes terminate, but also be able to to ensure that deletes eventually complete. When a user requessts deletion of a Pod, the system records the intended grace period before the Pod is allowed to be forcefully killed and a TERM signal is sent to the main  process in each container. Once the grace period has expired, the KILL singal is sent to these processes and the Pod is then deleted from the API server. If the kubelet or the container manager is restarted while waiting for processes to terminate the termination will be retried with the full grace period.
+
+An example flow:
+- User sends command to delete Pod, with default grace period (30s)
+- The Pod in the API srever is updated with the time beyond which the Pod is considered "dead" along with the grace period.
+- Pod shows up "Terminating" when listed in client commands
+  - (simultaneous with 3) When the kubelet sees that a pod has been marked as terminating because the time in the api server is set, it begins the pod shutdown process.
+    - if one of the pods containers has defined a preStop hook, it is invoked inside of the container. If the preStop hook is still running after the grace period expires, step 2 is then invoked with a small(2 second) extended grace period.
+    - the container is sent the TERM signal. Note that not all containers in the Pod will receive the TERM signal at the same time and may each require a preStop hook if the order in which they shutdown matters.
+  - (simultaneous with 3) Pod is removed from endpoints list for service, and are no longer considered part of the set of running pods for replication controllers. Pods that shutdown slowly cannot continue to serve traffic as load balancers (like the service proxy) remove them from their rotations.
+- When the grace period expires, any processes still running in the Pod are killed with SIGKILL
+- The kubelet will finish deleting the Pod on the API server by setting grace period 0 (immediate deletion). The pod disappears from the API and is no longer visible from the client.
+
+**** Force deletion of Pods
+It is the deletion of the Pod from the cluster state and etcd immediately. When force deletion is performed the API server does not wait for confirmation from the kubelete that the pod has been terminated on the node it is running on. It removes the Pod in the API immediately so a new Pod can be created with the same name. On the node, Pods that are set to terminate immediately will still be given a small grace period before force killed.
+
+Force deletions can be potentially dangerous for some pods and should be perfromed with caution.
+
+*** Privileged mode for Pod containers
+- useful for containers that want to use linux capabilities like manipulating the netowrk stack and accessing devices.
+- Process with in the containers get the same privileges that are available to processes outside a container.
+- with this is mode it should be easier to write to network and volume plugins as separate pods that don't need to be compiled into the kubelet.
+
+** Pod lifecycle
+
+*** Pod Phase
+- A pod's status field is a PodStatus object, which has a phase field.
+- The Pod phase is a simple high level summary of where the pod is in its lifecycle.
+- Possible values of a phase
+  - Pending: pod has been accepted by kubernetes, but one or more container are yet to be created. 
+  - Running: The pod has been bound to a node and all of the containers have been created. Atleast one of the container is still running or in the process of starting or restarting.
+  - Succeeded: All the containers in the pod have been terminated with success and will not be restarted.
+  - Failed: All the containers in the pod have been terminated and atleast one of container has been terminated with a non zero exit status or was terminated by the system.
+  - Unknown: For some reason the state of the pod couldn't be obtained, typically due to an error communicating with the host of the pod.
+
+*** Pod conditions
+A pod has a PodStatus which has an array of PodConditions through which the pod has or hasnot passed. PodCondition again has six possible fields.
+- lastProbeTime
+- lastTransistionTime
+- message
+- reason
+- status
+- type
+  - podScheduled
+  - Ready
+  - Initialized
+  - Unschedulable
+  - ContainerReady
+
+*** Container Probes
+A probe is a diagonstic performed periodically by the kubelet on a container. To perfrom a diagnostic, the kubelet calls a handler implemented by the container. 3 types of handlers
+- ExecAction
+- TCPSocketAction
+- HTTPGetAction
+
+Each probe has one of the 3 results
+- success
+- failure
+- unknown
+
+Kubelet can optionally call and react to 2 different probes running on a container
+- livenessProbe: Indicates wheather the container is running. If the liveness probe fails the kubelet kills the container and the container is subject to its restart policy. If the container doesn't contain the liveness probe the default state is success.
+- readinessProbe: Indicates wheather the container is ready to service requests. If the readiness probe fails the endpoint controller removes the pods IP address from the endpoints of all services that match the pod. The default state of readiness before the initial delay is failure. Similar to liveness probe if the container doesn't provide the readiness probe the default state is success.
+
+When should you use the liveness or readiness probes?
+- If a containers crashes by itself or encounters an issue or becomes unhealthy you don't necessarily need a liveness probe. The kubelet restart the container according to the restart policy. However if you like the container to be killed and restarted if a probe fails specify a liveness probe and specify a restartPolicy OnFailure.
+- If you would like to send traffic to a Pod only when a probe succeeds, specify a readiness probe. In this case the readiness probe might be the same as the liveliness probe, but the existence of the readiness in the same spec means that Pod will start without receving any traffic and will start receving traffic only after the probe starts succeeding. If your computer needs to work on loading large data, configuration files or migrations during start up specify a readiness probe. 
+
+*** Container states
+Once a pod is assigned to a Node the kubelet starts creating containers using container runtime. There are 3 possible states for containers
+- Waiting (Default)
+- Running
+- Terminated
+
+*** Pod readiness gate
+add extensibility to Pod readiness by enabling the injection of extra feedback or signals into PodStatus
+
+*** Restart Policy
+A podSpec has a restart policy field with possible values
+- Always (default)
+- OnFailure
+- Never
+
+The restart policy applies to all the containers in the Pod. /restartPolicy/ refers to restarts of the containers by th kubelet on the same node. Exited containers that are restarted by the kubelet with an exponential back off delay (10s, 20s, 40s ...) capped at 5mins and is reset after 10mins of succesful execution.
+
+*** Pod lifetime
+In general pods do not disappear until someone destroys them. This might be a human or a controller. Only exception to this rule is that Pods with a phase of succeeded or failed for more than some duration will expire and be automatically destoryed.
+
+3 types of controllers are available:
+- Use a job for pods that are expected to terminate, for example batch computations. Jobs are appropriate only for Pods with restartPolicy equal to OnFailure or Never.
+- Use a ReplicationController, ReplicaSet or Deployment for pods that are not expected to terminate, for example web servers. ReplicationControllers are appropriate only for Pods with a restartPolicy of Always.
+- Use a DaemonSet for pods that need to run one per machine, because they provide a machine-specific system service.
+
+All 3 types of controllers contain a podTemplate. It is recommended to create appropriate controller and let it create the pods, rather than directly create the pods yourself. This is because pds alone are not resilient to machine failures but controllers are.
+
+If a node dies or is disconnected from the rest of the cluster, Kubernetes applies a policy for setting a phase of all pods on the lost node to Failed.
+
+*** Init Containers
+Specialized containers that run before app containers in a Pod. Init containers can contain utilities or setup scripts not present in an app image.
+
+**** Understanding init containers
+A pod can have multiple containers running apps within, vut ut can also have one or more init containers, which are run before the app containers are started.
+
+Init containers are exactly like regular containeres, except
+- init containers always run to completion.
+- Each init contaier must complete sucessfully before the next one starts.
+
+If a pods init container fails, kubernetes repeatedly restarts the Pod until the init container succeeds. However, if the Pod has a restartPolicy of Never, kubernetes doesnot restart the Pod.
+
+To specify an init container for a pod specification, as an array of objects of type container, alongside the app containers array.
+
+**** Difference from regular containers
+- Init containers supports all the fields and features of app containers, including resource limits, volumes, and security settings. 
+- However the resource requests and limits are handled differently.
+- Init containers also don't suppoer readiness probes because they must run to completion before the Pod can be ready.
+- If you specify multiple init containers for pod, kubelet runs each init container squentially. Each init container must succeed before the next can run. When all of the init containers have run to completion, Kubelet initializes the application conatiners for the Pod and runs them as usual.
+
+**** Using init containers.
+Because the init containers have some advantages for start-up related code:
+- Init containers can contain utilities or custom code for setup that are not present in an app image. For example, there is no need to make an image FROM another image just to use a tool like sed, awk, python or dig during setup.
+- Init containers can securely run utilities that would make an app container image less secure.
+- The application image builder and deployer roles can work independently without the need to jointly build a single app image.
+- Init containers can run with a different view of the filesystem than app containers in the same Pod. Therefore, they can give access to Secrets that app containers cannot access.
+- Because the init containers run to completion before any app containers start, init containers offer a mechanism to block or delay app container startup until a set of preconditions are met. ONce preconditions are met, all of the app containers in a Pod can start in parallel.
+
+**** Detailed behavior
+During the startup of a Pod, each init container starts in order, after the network and volumes are initialized. Each container must exit sucessfully before the next container starts. If a container fails to start due to the runtime or exits with failure, it is retried according to the Pod restartPolicy. However if the Pod restartPolicy is set to Always, the init containers use restartPolicy OnFailure.
+
+A pod cannot be Ready until all init containers have succeeded. The ports on an init container are not aggregated under a service. A pod that is initializing is in the Pending state but have a condition Initializing set to true.
+
+If the pod restarts or is restarted all init containers must execute again.
+
+Changes to the init containers spec are limited to the container image field. Altering an init container image field is equivalent to restarting the Pod.
+
+Because init containers can be restarted, retried or re-executed, init container code should be idempotent. In particular, code that writes to files on EmptyDirs should be prepared for the possibility that an output file already exists.
+
+Init containers have all fields of an app container. However, Kubernetes prohibits readinessProbe from being used because init containers cannot define readiness distinct from completeion. This is enforced during validation.
+
+**** Resources
+
+**** Pod restart reasons
+- A user updates the pod specification, causing the init container image to change. Any changes to the init container image restarts the Pod. App container image changes only restart the app container.
+- The Pod infrastructure container is restarted. This is uncommon and would have to be done by someone with root access to nodes.
+- All containers in the pod are terminated while restartPolicy is set to Always, forcing a restart, and the init container completion record has been lost due to garbage collection.
+
+*** Pod Preset
+
+** Pod Preset
+Pod persets are objects for inserting certain informationinto pods at creation time. The information can include secrets, volumes, volume mounts and environment variables.
+
+*** Understanding Pod Presets
+A pod preset is an API resource for injecting additonal runtime requirements into a Pod at creation time. You use label selectors to specify the Pods to which a given Pod preset applies.
+
+Using a pod preset allows pod template authors to not have to explicitly provide all information for every pod. This way, authors to not have to explicitly provide all information for every pod, the authors of pod templates consuming a specific service do not need to know all the details about that service.
+
+*** How it works
+
+Kubernets provides an admission controller (Pod Preset) which, when enabled, applies Pod presets to incoming pod creation requests. whe a pod creation  request occurs, the system does the following
+- Retrieve all PodPresets available for use.
+- Check if the label selectors of any PodPreset matches the labels on the pod being created.
+- Attempt to merge the various resources defined by the Podpreset into thePod being created.
+- On error, throw an event documenting the merge error on the pod, and create the Pod without any injected resources from the PodPreset.
+- Annotate the resulting modified Pod spec to indicate that it has been modified by PodPreset. 
+ 
+Each Pod can be matched by zero or more Pod Presets; and each PodPreset can be applied to zero or more pods. When a podpreset is applied to one or more Pods, Kuberenetes modifies the Pod Spec. For changes to Env, EnvFrom and VolumeMounts, Kuberenetes modifies the container spec for all containers in th Pod; for changes to Volume, Kuberenets modifies the Pod spec.
+
+Disable pod preset for a specific pod. In these instances where you wish for a pod to not be altered by any pod preset mutations.

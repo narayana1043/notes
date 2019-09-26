@@ -1,0 +1,54 @@
+#+SETUPFILE: HTTPS://FNIESSEN.GITHUB.IO/ORG-HTML-THEMES/SETUP/THEME-READTHEORG.SETUP
+#+STARTUP: SHOWALL
+#+EXPORT_FILE_NAME: ../EXPORTS/NLP.HTML
+#+OPTIONS: ^:NIL
+
+* DISTANT SUPERVISION FOR RELATION EXTRACTION WITHOUT LABELED DATA
+:AUTHORS: Mike Mintz, Steven Bills, Rion Snow, Dan Jurafsky
+:UNIVERSITY: stanford
+
+** 3 learning paradigms
+
+*** Supervised approaches
+- sentences in a corpus are first hand-labeled for the presence of entities and the presence of the entites and the relations between them.
+- problems in this method are
+  - labeled traning data is expensive to produce and thus limited in quantity.
+  - since the relations are labelled on a particular corpus the models tend to be biased to that text domain.
+
+*** Unsupervised approaches
+- extracts strings of words between entities in large amounts of text.
+- clusters and simplifies these word strings to produce relations strings
+- problems with these approaches can use very large amount of data and extract very large number of relations, but resulting realtions may not be easy to map to relations needed for a particular knowledge base.
+
+*** Using seed instances or patterns
+- Use a very small number of seed instances or patterns to do boot-strap learning.
+- these seeds are used with a large corpus to extract a new set of patterns which are used to extract more instances, which are used to extract more patterns, in an iterative fashion. The resulting patterns often differ from low precision and semantic drift.
+
+** Distanct supervision
+- This approach combines the some fo the advantages of each of these approaches.
+- The intution of distanct supervision is that any sentence that contains a pair of entities that participate in a known relation is likely to express that relation in some way.
+- since there may be many sentences that containing a given pair entity pair, we can extract very large number of (potentially noisy) features that are combinded in logistic regression classifier.
+  - whereas the supervised training paradigm uses only a small labeled corpus of relation instances as training data, but distance supervision can use much large amount of data. More text -> More relations -> More instances.
+  - since distance supervision is supervised by database(Freebase), rather then by labeled text, it does not suffer from the problems of overfitting and domain-dependence that plague supervised systems.
+  - Supervision by a database also means that unlike in unsupervised apppraches the output of our classifier uses canonical names for relations.
+- This approach offers a natural way of integrating data from multiple sentences to decide if a realtion holds between 2 entities. Because the algorithms can use large amounts of unlabelled data, a pair of entities may occur multiple times in the test data. For each pair of entities aggregate the data from the many different sentences in which that pair appeared into a single feature vector, allowing us to provide our classifier with more information, resulting in more accurate predictions.
+
+** Architecture
+
+*** Training
+- The intution of DS approach is to use Freebase to give us a training set of relations and entity pairs that participate in those relations.
+- In the training step, all the entities are identified in sentences using a named entity tagger that labels persons, organizations and locations.
+- If a sentence contains 2 entities and those entities are an instance of a freebase relations, features are extracted from that sentence and are added to the feature vector for the relation.
+- The DS assumption is that if 2 entities participate in a relation, any sentence that contain those 2 entities might express that relation.
+- Because any individual sentence may give an incorrect cue, the algorithm trains a multiclass logistic regression classifier, learning weights for each noisy feature.
+- In training the features for identical tuples (relation, entity1, entity2) from different sentences are combined, creating a richer feature vector.
+
+*** Testing
+- entities are again identified using the named entity tagger.
+- This time every pair of entities appearing together in a sentence is considered a potential relation instance and when ever those entities appear together, features are extracted on the sentence and added to a feature vector for that entity pair.
+  - ex: if a pair of entities occurs in 10 sentences in the test set, and each sentence has 3 features extracted from it, the entity pair in each sentence in the test corpus is run through feature extraction, and the regression classifier predicts a relation name for each entity pair based on the features from all of the sentences in which it appeared.
+
+** Features
+
+*** Lexical Features
+

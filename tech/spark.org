@@ -1,0 +1,682 @@
+#+SETUPFILE: https://fniessen.github.io/org-html-themes/setup/theme-readtheorg.setup
+#+STARTUP: showall
+#+EXPORT_FILE_NAME: ../exports/spark.html
+#+OPTIONS: ^:nil
+
+* Overview
+
+(SPARK is more of an ART than a SCIENCE)
+ 
+It is fast and general purpose cluster computing system. It provides high-level API's in
+ - Java
+ - Scala
+ - Python
+ - R
+ - and an optimized engine that supports general execution graphs.
+
+It also a rich set of higher-level tools including
+ - Spark SQL for SQL
+ - structure data processing
+ - MLlib for machine learning
+ - GraphX for graph processing
+ - Spark Streaming
+
+Things to know.
+ - Security is turned off by default in spark. (vulnerable to attack by default). see more [[https://spark.apache.org/docs/latest/security.html][here]].
+ - Spark uses hadoops client libraries for HDFS and YARN. Downloads are prepackaged for only popular hadoop versions.
+ - Runs on windows and unix machines as long we have Java in path.
+
+** Interactive analysis
+- Spark shell provides a simple way to learn the API, as well as a powerful tool to analyze data interactively.
+- Available in either scala (which runs on the Java VM and is thus a good way to use existing Java libraries) or python.
+
+** Dataset
+- Sparks primary abstraction is a distributed collection of items called a Dataset. Datasets can be created from Hadoop InputFormats (such as HDFS files) or by transforming other datasets.
+- Due to python's dynamic nature, we don't need the Dataset to be strongly-typed in Python. As a result, all Datasets in Python are Dataset[Row], and we call it DataFrame to be consistent with pandas or R dataframes.
+
+* History
+- spark is application built to demo mesos which took over the big table world.
+- Before spark 2.0 the main programming interface of spark was the resilient distributed dataset (RDD). After Spark 2.0, RDDs are replaced by Dataset, which is strongly-type like an RDD, but with richer optimizations under the hood. Recommended to use dataset. See [[https://spark.apache.org/docs/latest/sql-programming-guide.html][SQL programming giude]] to get more information about the dataset.
+- RDD are still supported. RDD programming guide is [[https://spark.apache.org/docs/latest/rdd-programming-guide.html][here]].
+
+* Introduction
+essentially a scheduling, monitoring, distributing engine for big data.
+
+** where spark fits into the big data world?
+- At center of the spark universe is the spark core.
+  - it uses both memory and disk when processing data.
+- traditional apis on the top of the spark core
+  - scala
+  - java
+  - python
+  - R
+  - dataframes api
+    - very similar to dataframe in python and R.
+- Around sparkcore there are higher-level apis
+  - spark-sql
+    - a module for working with data which is made of rows and columns.
+    - it used to work with special rdd called a schema rdd, which is now replaced with dataframes.
+    - lot of the hive queries works out of the box with spark-sql as it uses the hive-metastore
+    - there are jdbc & odbc connections. tools like tabelau will pass their queries to spark-sql through one of these mechanisms
+  - spark streaming
+    - way faster than apache strom or yahoo's s4.
+  - MLlib
+    - things like classification, clustering, regression, dim reduction etc.
+    - there is any underlying lib called Jbreeze, Jblast.
+    - correlations, random data generation, collabarative filtering.
+  - GraphX
+  - BlinkDB
+    - alpha project
+      - for running interactive queries.
+      - run a query to get answer in 5 sec but a margin of error
+      - if we are unhappy we can let the query run for longer to reduce margin of error.
+    - Tachyon
+      - a memory based distributed storage system that allows data sharing across cluster frameworks like hadoop and spark
+      - there is a java like api for tachyon.
+  - Resource managers
+    - they coordinate the running and execution of spark.
+    - modes in spark
+      - local mode
+      - yarn (apache yarn project)
+      - mesos (stands for mediator in greek)
+      - spark stand-alone
+    - file systems
+      - spark can read from almost any file system and any database that supports hadoop.
+      - file systems
+        - HDFS
+        - S3
+        - Local
+        - openstax
+    - buffers
+      - flume and kafka can be buffers for spark streaming.
+
+** why spark?
+spark gives a unified engine instead of learning several different engines like
+- dremel
+- pregel
+- giraph
+- tex
+- mahout
+- s4
+- impala
+- storm
+- drill etc etc
+
+You can start with spark core and build knowledge on out layer like streaming, dataframes, sql etc depending on the use case.
+
+** speed
+
+- 10 to 100 times faster then map reduce.
+  - traditionally in map reduce we read data from hdfs and write intermediate results back to hdfs and then read back from hdfs and do this over and over again, which is the cause of the main slow down when comes computing.
+  - so people used to use oozie which shoots map-reduce jobs in order.
+  - spark on the other hand keeps the intermediate results in memory and write the final results to anywhere.
+- motivations for leverging memory
+  - when a cpu reads data from memory the read speed is 10GB/s
+  - if go down to spinning diks 100MB/s
+  - if we go to ssd then it is 600MB/s
+  - over network 1GB/s
+  - over to another rack 0.1GB/s
+
+** whitepapers
+- [[https://www.usenix.org/legacy/event/hotcloud10/tech/full_papers/Zaharia.pdf][spark cluster computing with working sets]]
+- [[https://www.usenix.org/system/files/conference/nsdi12/nsdi12-final138.pdf][Resilient distributed datasets: A fault tolerant abstraction for in memory cluster computing]]
+- [[https://people.csail.mit.edu/matei/papers/2013/sosp_spark_streaming.pdf][Discretized Streams: Fault tolerant streaming computation at scale]]
+- [[https://people.csail.mit.edu/matei/papers/2015/sigmod_spark_sql.pdf][spark sql: relational data processing in spark]]
+- [[https://amplab.cs.berkeley.edu/wp-content/uploads/2014/09/graphx.pdf][GraphX: Graph prpcessing in a distributed dataflow framework]]
+- [[https://sameeragarwal.github.io/blinkdb_eurosys13.pdf][BlinkDB: Queries with Bounded Errors and Bounded Response Times on Very Large data]]
+* RDD Fundamentals
+
+- Rdd has partitions and the more partitions we have the more parallelism we have.
+- The n partition RDD can be spread across several machines.
+- In general the RDD will have between 1000-10000 partitions.
+  - each partiion will require a thread of computation.
+  - basically if we have 5 partitions to compute against the rdd we need 5 tasks each of which will run inside a jvm on a worker node
+  - so in a hundred node cluster if we just have only 5 partitions we cann't use the full power of the cluster.
+- RDD can be create in two ways
+  - parallelize a collection
+    - not generally used outside protying and testing because the whole data has to fit in driver memory
+  - read data from an rdd from an external source.
+    - read from s3 or HDFS
+    - read from cassandra and other sources in slightly different way.
+- Repartition or Coalesce
+  - sometimes after the filtering some partitions might be empty. In that case we might need to repartition or coalesce to make sure the next steps are better parallelized
+- every transformation in spark is lazy
+  - spark builds a DAG (directed acyclical graph). It basically metadata to say which RDD depends on which RDD.
+  - only when action like collect or write is called on the final RDD all the transformations are executed.
+  - careful when calling collect. (might cause memory out errors). If the rdd is very large write it to HDFS
+- count operations
+  - each executor counts the number of rows in their local rdds and the driver add all the results together.
+- caching rdd or presisting into memory
+  - you should always be very careful which rdd you are caching. Be very selective.
+  - it also ok if the RDD doesn't fit in memeory. Ex: if only 30% of the data fits into memory it ok the rest of the RDD is saved on to the disk from where spark will get it. (Resilient in Resilient Distributed Dataset comes from here)
+  - speed depends on how much of the RDD fits in memory.
+  - it also lazily cached which means that only when a action is called it actually start the caching.
+  - There is setting called SPARK_LOCAL_DIRS which you can use to tell spark where to fill of the RDD that doesn't fit into memory when cached and spark will pick it up from there later when required. It is also used for shuffles as well. Use SSD's if you can. If there are multiple disks spark will push data down parallely to all the disks
+  - One more thing to remember about caching is the amount memory taken for the cache is generally 2 or 3 times the memory taken in the disk. This overhead is due to the deserialization of the data.
+  - Caching RDD is also help to understand the shape of the RDD. Example cache the RDD and take a look at the partitions in the Spark driver UI, if you notice that a lot the data is in just one partition. That is a really bad shape for the RDD. You might want to shuffle or do something about. This is one way to understand if your RDD is lopsided. For the ones that don't fit in memory the size on the disk will also be shown in the UI.
+
+** RDDs are [[https://github.com/apache/spark/tree/master/core/src/main/scala/org/apache/spark/rdd][typed]]
+
+  - hadoop rdd
+  - filtered rdd
+  - mapped rdd
+  - pair rdd
+  - shuffled rdd
+  - union rdd
+  - python rdd
+  - double rdd
+  - jdbc rdd
+  - json rdd
+  - schmea rdd
+  - vertex rdd
+  - edge rdd
+  - cassandra rdd
+  - geo rdd
+  - EsSpark
+  - [[https://github.com/apache/spark/blob/master/core/src/main/scala/org/apache/spark/rdd/RDD.scala][scala rdd]]
+
+** Life cycle of spark program
+- create some input rdds from exernal data or parallelize a collection in your driver program
+- lazily transform them to define new RDDs using transformations like filter() or map()
+- Ask Spark to cache() any intermediate RDDs that will need to be reused.
+- Lunch actions such as count() and collect() to kick off a parallel computation, whcih is then optimized and executed by spark.
+ 
+** Transformations
+Most transformations are element wise, but this not true for all transformations. If you want to do something like a rdd that has like 1000 partitions and each of these partition has 50 items, what you don't want to do is open a connection to database for each item and instead do it a partiion level, where you open one connection and get an iterator and push the items and then close the connection.
+
+The apache docs will give like 2-3 lines of explanation for these transformations. If that is not helpful look up the spark source code in scala on github where you will find comments which explains what the transformation does.
+
+- map
+- flatmap
+- filter
+- mapPartitions
+- mapPartiionsWithIndex
+- sample
+- union
+- intersection
+- distinct
+- groupByKey
+- reduceByKey
+- sortByKey
+- join
+- cogroup
+- cartesion
+- pipe
+- coalesce
+- repartition
+- partitionBy
+  
+** RDD Interface
+This cpatures all cureent spark operations
+- set of partitions ('splits')
+- list of dependencies on parent rdd's
+- function to compute a partition given parents
+  - if there is an rdd with 50 partiions and loose the partition number 3 that you have cached. The RDD will now how to recreate the lost RDD given the parents. This might only require recreating the 3 partition of the parent or 3 partition of all the parents above it.
+- Optional preferred location
+  - for example if you are reading from hdfs, each rdd will prefer to live on a machine on which it has a replica of the hdfs block local to that machine.
+- Optional partitioning info for key/value RDDs (partitioner)
+  - An rdd can have a partitioner set on it. You can also have a custom partitioner set on it. 
+* Spark Resource Managers
+** You can run spark in one of the 4 different  ways
+- Local (local machine) 
+- Standalone Scheduler (cassandra datastax)
+- YARN (hadoop) 
+- Mesos
+
+** Partitioning(not RDD partitioning)
+2 types, Spark allows you to dynamically adjust the resources your application occupies based on the workload.
+- static partitioning: 
+  - local
+- dynamic partitioning
+  - YARN
+  - Mesos
+  - standalone scheduler
+
+** Hadoop is actually 3 projects under Apache.
+- HDFS
+  - NameNode
+  - DataNode
+- YARN
+- MapReduce
+  - JobTracker
+  - TaskTracker
+    - Map
+    - Reduce  
+
+** Differences between spark and map-reduce
+- Spark's purpose is not replace hadoop but to replace the map-reduce part of the Hadoop. The away you get parallelism in traditional map-reduce is you have multiple jvms and process ids for your map and reduce tasks. However in spark you get parallelism by having different threads running inside the executor.
+- Map and reduce slots in traditional map-reduce are hard coded. The problem is initially when you start a map-reduce job the application is probably stuck for hours in map phase for hours and during this time the reduce slots are not used. Therefore we cannot see 90% CPU usage. In spark the slots are generic slots that can run map or reduce or any other thing.
+- In traditional map reduce, once a map finishes what has to happen is the task tracker has to let the job tracker know that there is an empty slot so that it can assign a new map task. Therefore once a task finishes it could take 15-20 seconds before a new task lands in the slot (heartbeat b/w the job-tracker and task-tracker is 3 sec). So facebook built corona to overcome this issue. This is not a problem in spark. The reuse of slots in spark is significantly faster.
+- spark actually calls the slots as cores.
+
+** Local Mode
+- start a scala/python shell
+  - this starts a jvm
+  - in this jvm you cache your rdd.
+- setting the number of cores
+  - assuming the machine has 8 cores, it a very common beginner mistake to say 2 for os and 6 for spark. This is a mistake
+  - In general you should start with a factor of 2 or 3, which is equal to 12 or 18 task slots.
+  - you can pass in a parameter at the start to of the shell to say how many threads you want in spark or spark starts with a default of one thread.
+  - you pass * spark starts the threads which is equal to the number of logical cores, which is also by bad.
+  - good setting is to use a factor of 2.
+  - of course this might screw up the other services running on the machine. Therefore coming up with the right number of cores is an art of the system administrator.
+- internal threads in spark.
+  - roughly 20 internal threads running at anypoint in time. Mostly sitting ideal.
+  - These are used for shuffle etc. When we need a shuffle they kick in, do the shuffle and go ideal again.
+  - so if you try to align the number of logical cores with the number of tasks that won't work anyway because there are always internal threads running in spark.
+  - shuffles in local mode are super fast as there are no data movement over the network.
+
+** Standalone Mode
+- In this mode when you start machines certain JVMs are going to instantiate. 
+  - this is not starting an application
+  - Master JVM
+  - On each machine a worker JVM will start up
+  - all the worker JVM will register with master and the master will know that there are 4 workers
+
+The master and worker JVM are the resources managers. These JVMs are relatively small JVMs. They are relavtily ok with 500MB or 1GB of RAM.
+
+Now we start the application:
+- ssh into one of the machines.
+- a driver starts in the machine where you ssh and asks the master for executors.
+- The spark master works like a schedular to decide where it is going to launch the executor JVMs. Then tells each worker to launch the executor JVMs.
+- All the master is doing is deciding and scheduling where the executors are going to run.
+- All the worker jvms are doing is start the executors and if the executor crashes the worker restarts it. Thats why it doesnot need that much memory.
+- If the worker jvm crashes the worker restarts it.
+- You can make the driver highly available as well with a supervised tag, then if a driver fails the master restarts but if the driver restarts all the workers have to restart as well.
+- The RDDs are cached in executors and the tasks are run in the executors. When the tasks are run local to an executor JVM which is what spark aims to do then it is quite fast, because the data from the executor JVMs heap right into the thread.
+- You can also persist replicas on the RDDs.
+- You can make the master highly available by adding more master jvms even while the application is running.
+- If you are running multiple applications in standalone. You can have one worker start multiple executors, however one worker cannot start multiple executors for the same application.
+  - This is a problem when you have machines with huge RAM. Because if we start a JVM with huge RAM then the garbage collection pauses gets really awkward.
+  - Therefore if you want to utlize all the memory. Then you need to 2 or more workers and each worker on the machine can start a single executor.
+  - SPARK_WORKER_INSTANCES (default = 1) this is how many worker jvms you want in each machine.
+- SPARK_WORK_CORES (default = all) is the number of cores to allow spark applications to use on the machine. This is not the number of threads that will run in a worker JVM. It is actually the number of cores that the worker can give out to the underlaying executors. If you set this is 12 and one executor is started with 6 than it can start another executor with 6 cores. When you start an application in this mode and don't tell anything about the cores then the application will greedily acquire all the cores on the worker. By default it will whatever will take the max is.
+- SPARK_WORKER_MEMORY (default = TOTAL RAM - 1GB) is how much the worker can give to its underlying executors. This is not setting the JVM heap the worker will use.
+- SPARK_DEAMON_MEMORY (default = 512 MB) is the memory to allocate to spark master JVMs and the spark worker deamons themselves. The way you set the spark master and worker to set 1GB heaps is this one.
+- Standlone mode settings
+  - spark.cores.max: maximum of amount of CPU cores to request for the application from across the cluster.
+  - spark.executor.memory: Memory for each executor
+
+** YARN Mode
+
+Yet Another Resource Negotiator
+
+*** Architecture of YARN
+
+**** Introduction
+
+- There is a master machine running a resource manager. It contains
+  - Schedular, which decides where the masters will run and the containers are scheduled
+  - ApplicationS master, when an application master crashes this ApplicationS master will restart the application master and the application will have t o restart completely.
+- Each slave machine in the hadoop cluster will run a node manager
+- The node managers are heart beating with the Resource manager and sharing information live resource information.
+  - How many cores are occupied
+  - How much RAM is occupied
+  - How much of the bandwidth is occupied
+  This give the resource manager the ability to see how much resources are occupied across the cluster
+
+**** Application Flow
+
+You start the client application and submit it to the resource manager and it is gonna look at it and assume the responsibilty to negotiate a specific container to run on a node. 
+- The application submitted will have some constraints for the application master and the resource manager will then find a node that has free resources that your application master needs and then start the application master through a container on that node.
+- The application master is not going to do any work. It like the schedular in the traditional map reduce. What the application master will do is immediately contact the resource manager and say thanks for starting me but i need containers to do my actual work.
+- The resource manager will then find the nodes that have the resources and then handover keys to the master with which the master can communicate with the node managers to start the containers.
+- The node managers will accept the keys and will start the containers and register themselves with the application master and the application master will report this directly back to the client.
+- After this point the containers are not in directly contact with the resource manager, so if the resource manager crashes the application will still be running. One problem if the resource manager crashes the application master will not be able to ask for new resources from the resource manger during the run time of this application. But if everything is fine the application master can be increasing and decreasing the number of containers while the application is running.
+- With YARN the application master can make really detailed requests
+  - One container with GPU
+  - One container with CPU
+  - Both containers should be on the same rack
+  - Both containers should be on the same machine
+  - Both container should have X amount of memory
+ 
+*** Spark in YARN
+
+There are 2 ways
+
+**** client mode
+
+- In client mode the driver runs on the client itself.
+- The client can be your laptop.
+- There are rest of thing like application master, containers, node managers, resource managers are still exactly as discussed above.
+- However if you call an collect action on an RDD, the items inside the RDD will be shift to the driver over the network and you will be able to see the results in the shell. Not good if you collect the whole dataset.
+- In this case the only reason the application master exsits is because in YARN that is the only way you can get containers to run executors. In this case the executors running in the containers are in direct communication in the driver.
+- This is similar to the standalone mode where the worker start the containers, but here the node manager starts the containers and then starts the executors within it. But actually it is the application master that negotiates with the resource manager that it wants two containers to run executors.
+- RM tells Application Master where the containers can be scheduled. The resource manager is basically doing what the spark master is doing in the standalone mode.
+- However now there is one important schedular inside the spark driver which decides where the actual tasks will be scheduled. The driver schedular is going to aim for placing the tasks whereever the data is or closer to the data. This is different from the RM schdeular.
+- Another interesting is to thing if you have n node cluster and you start less than n executors then problem is the hdfs blocks that only might exsit on the nodes in which the executors are not running might have to moved over network to another executor.
+  - Better start n executors
+  - if you start less than n executors, check for ways to start the executors where you can get more data locality.
+
+**** cluster mode
+- In client mode, if you remove the laptop from the cluster and go home, the driver is disconnecteed from the cluster which will terminate the cluster. So if you want to submit an application and walk away and see the results later (no interactive work) use cluster mode.
+- In cluster mode the client submits the application including the python script or the jar file and the driver runs inside the spark application master itself, now we might not do something like collect but might save the results to the hdfs or somewhere.
+
+*** Intersting settings in YARN
+- --num-executors: controls how many executors will be allocated
+  - cannot be done in stanalone mode
+- --executor-memory: RAM for each executor
+- --executor-cores: CPU cores for each executor
+
+*** Dynamic Allocation:
+Gives the ability to relatively increase or decrease the number of executors live in an application
+- spark.dynamicAllocation.enabled
+  - turns on the feature dynamic allocation
+- spark.dynamicAllocation.minExecutors
+  - starts this minimum number of executors
+- spark.dynamicAllocation.maxExecutors
+  - 
+- spark.dynamicAllocation.sustainedSchedulerBacklogTimeout
+  - after the starting the min number of executors and after this timeout spark checks if there are tasks that are not scheduled or waiting to be scheduled. If there are such tasks then few new executors are started if the current number of running executors is less then the max numbers of executors scheduled.
+    - 10 -> 20
+    - this timeout is only checked once
+- spark.dynamicAllocaton.schedulerBacklogTimeout
+  - spark checks for backlog again after this timeout and increases the executors exponentially.
+  - 10 -> 20 -> 50 -> 100
+  - this timeout is checked over and over again and increase the executors until the max is reached
+- spark.dynamicAllocation.executorIdleTimeout
+  - this timeout is to check if there are idle resources. if in the currently running executors if no task is scheduled spark starts to terminate the executors after this timeout hits until the min number of executors for the application is reached. 
+
+This is how dynamic allocation works in YARN. There is something similar in mesos but a little different. This cannot be done in standalone mode
+
+** Gist on resource schedular modes
+
+|            | spark central master | who starts executors | tasks run in |
+|------------+----------------------+----------------------+--------------|
+| local      | none                 | human                | executor     |
+| standalone | standalone master    | worker jvm           | executor     |
+| YARN       | YARN App master      | Node Manager         | executor     |
+| Mesos      | Mesos Master         | Mesos Slave          | executor     |
+
+- the tasks are always are run in executors
+- who starts the executors is different depending on the resource managers
+- the spark central master is the guy decides where the executors will run. There are different deamons depending on the mode which decide where the executors will start. 
+
+** Deploying an APP to the cluster
+
+- Keep the code in the local and develop everything in local mode.
+- Use spark submit to deploy the code in a cluster.
+
+| Mode       | Value              | Explanation                                                                                                                                                 |
+|------------+--------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| standalone | spark://host:port  | connect to a spark standalone master at the specified port (default port is 7707)                                                                           |
+| mesos      | messos://host:port | connect to a mesos cluster master at the specified port. (default port is 5050)                                                                             |
+| YARN       | yarn               | indicates submission to yarn clinet. whe running on YARN you'll need to export HADOOP_CONF_DIR to point the location of your Hadoop configuration directory |
+| local      | local              | Run in local mode with single core                                                                                                                          |
+| local      | local[N]           | Run in local mode with N cores                                                                                                                              |
+| local      | local[*]           | Run in local mode with as many cores s the machine has                                                                                                      |
+
+There are some other settings can be set like executor memory, number of executors etc. please refer to the docs
+
+** Issues
+
+*** Data locality
+
+If you have a 100 node cluster start 100 executors so that you won't run into data locality issues. If you start less then data has to be over the network which can be a pain.
+* General Rules of Thumb
+** Configurations
+- Recommended to use at most only 75% of a machine's memory for spark.
+- Minimum executor heap size should be 8GB
+  - giving it only a GB of memory you will run into old memory issues.
+- Max executor heap size depends ... may be 40GB, this depends on how the JVMs GC is doing. Increasing this greater than 40GB will introduce GC issues. The GC will take longer than usual resulting in slowing down the jobs.
+  - if usiing properitory jvms that can handle 100's of GB of memory this is fine may be.
+  - In general if using open JDK or some other opensource jvms then likely better keep this under 40GB.
+** Memory
+- Memory usage is greatly affected by the storage level and serelization formats.
+  - memory usage is greatly affected by how you store the rdds in memory.
+  - cache is memeory only but persist you can pass in arguments.
+    - RDD.cache() == RDD.persist(options)
+      - MEMORY_ONLY (deserialized in memory, can be serailized)
+      - DISK_ONLY (will always be serialized) the disk is SSD
+      - MEMORY_AND_DISK (deserialized in memory and serialized in disk)
+      - MEMORY_AND_DISK (default serialized in memory and disk)
+      - MEMORY_ONLY_X (stores x replicas of the RDD in memory).
+      - OFF_HEAP
+    - If using serialization use a fast serialization (kyro). The default java serialization is slow.
+    - The serialization might slow the app down a little bit because it involves the cost of serialization and deserialization. However if serialized the cost of GC reduced because many individual buffers are stored as a single java object.
+    - Anything the moves to disk always serialized.
+- when you persist the rdd in memory spark is storing the RDD is as deserailized java objects.
+- when you cache the RDD is stored into the memory and the pieces that don't fit into the memory will be dropped will not be stored in the disk. However when the dropped RDD is required those pieces are recomputed from the underlying data source or an eariler RDD that you have cached in the DAG.
+- If you cache an very big RDD then all the eariler RDD will removed from memory and 50 or so percent of this RDD might be cached. LRU (least recently used) cache.
+- If a executor crashes the cached RDD in the JVM is lost but spark will not right way know what parts of the cached RDD are lost because it uses lazy evalution, but when required it goes back and recomputes the transformations from the underlying data source when required.
+- When caching you can also say how many replicas you want to cache. In general you want a replication factor of 1 only. This is not like HDFS where you want to have multiple replicas of the same blocks of data. Just trust the recompute engine of spark to recreate the lost partition.
+- A replication factor of more than 1 is needed only when the RDD is extermely important, for example when it takes a lot of compute to recreate a lost partition of the RDD because of a large dependencies on the previous RDDs.
+** Persisting
+- If RDD filts in memory. choose MEMORY_ONLY
+- IF not, use MEMORY_ONLY_SER with fast serialization library.
+- Don't spill to disk unless function that computed the datasets are very expensive or they filter a large amount of data. (recomputing may be as fast as reading from the disk).
+- Use replicated storage levels sparingly and only if you want fast fault recovery (may be to serve requrests form a web app)
+- Intermediate data is automatically persisted during shuffle operations. So next time if you call an action on the same RDD spark might walk back the DAG and start from this persisted data which was actually persisted during a previous shuffle operation.
+* Other integrations into Spark
+** Tachyon
+- Theoritical particle faster than light.
+- OFF_HEAP in-memory storage in for spark.
+- The RDD will stored off heap in a searilized format which will reduce the garbage collection overhead in the JVM.
+- Also if you store inside tachyon the RDD will still be available even if the executor JVM crashes and restarts.
+- COOL THING: you write a scala ETL job and persist the data into tachyon and pick it up with a pyspark job and do something put it back into tachyon and pick it up with JAVA to do something else. This can be like the go between spark programming languages.
+- It runs outside the executor process and hopefully in every node.
+- Might be relativily slower because the RDD is not in the JVM, but relativily fast because it is not the RDD is still in memory and coming from an SSD or something even slower.
+  - 
+* Language Specific Details
+** Pyspark
+*** Things to know
+- The pyspark api is based regular C python. It's not jython. The C python interpertor is a regular unmodified python interpretor. This means that all the python libraries are available in python are also availble in pyspark (eg. numpy, nltk, etc).
+- With pyspark you can write python spark jobs through the interactive shell. Basically the python and scala interactive shells for spark are almost the same python and scala shells which are modified a little to include extra things like start the spark context job.
+- Pyspark is built on the top of java api which sits on the top of spark core engine which is the scala api.
+- stored objects will always be serialized with pickle library. so it does not matter whether you choose a serialized level.
+- spark.python.worker.memory 512m default. The python process by default will get this amount of memory change this if you want to increase or decrease the memory.
+*** Pysaprk Architecture
+- when you start the pyspark shell you get the spark context controller object. This is not the spark context that you see in the java or scala api. This is more like a controller for the jvm based spark context.
+- when you start the pyspark RPEL, pyspark will use Py4j socket to instantiate a normal driver JVM (the actual spark context).
+- Py4j just enables the python programs running in the python interpretor to dynamically access the Java objects in a JVM. This enables to call the java objects from your python code as if they were python methods.
+- The actual spark context (driver jvm) will trigger to start the exeexecutor jvms.
+- Each executor jvms will then launch deamon.py process which will then start x(num-cores # of process for executor JVM) python process.
+- The pipe (custom pipe written by spark engineers) between the executor JVM and the python process is a highthrougput pipe and Py4j because it has to move a lot data between the JVM and the python process. But Py4j was appropriate for the short command structures act as communication module bwtween the python RPEL and driver JVM due to its low latency.
+- If there is some map reduce written in python then the user code has to be shipped from the driver to the executors to the actual python processes and along with the RDD partition the code is supposed to work on.
+- Data
+  - you can read the data directly into the python processes. The problem here is pyspark have to rewrite a lot of IO code to read data from different databases etc. so the below is what got implemented.
+  - Pyspark reads directly the executor JVMs and the executor JVMs read  data from anywhere using the existing IO code.
+- Spark will pickle the code in the RPEL and will send the pickled object into the driver JVM using Py4j and shipped into the executor JVMs over network and then shipped into the python processes along with the RDD partition where the code in unpickled and works on the RDD to perform the RDD transformations. The resulting RDD partition will be shipped back to the executor JVMs or in the case of pipelining it stays within the python processes. (pycloud pickle module is used for picking)
+- There will always be some slow down in pyspark compared to its scala or java code due to the overhead which is caused by
+  - moving the things (data and code) to and fro between the python process
+  - starting and stopping the python processes.
+  - python (dynamically typed) is itself slow compared to scala and java (both are statically typed languages). Dynamically typed languages are generally slower than staticly typed language.
+- User code written in pyspark will does run natively in python process ids. However anything you do with DataFrame, Spark SQL, MLlib, Shuffle will run at native JVM speeds inside the executors.
+- When we do a colllect on the RDD the data is sent from the python processes to the executor JVMs and then to the driver JVMs from where it is written to the disk instead of sending to the python RPEL using the py4j. The RPEL will then read the data from the local disk. Py4j is slow because it has to encode in base64 which is slow.
+*** Speed Increase
+- You can choose your python implememtation. By default spark uses C python which is the python that we get from python.org
+  - cpython converts your python code into byte code transperantly and evaluates the byte in a evalution loop and compiles.
+- To get a huge speed increase you can swtich the interpreter to pypy.
+  - Uses JIT (just in time compilcation) which is significantly faster.
+  - Uses less memory
+  - Has CFFI (see forgien fucntion interface for python) support. The goal here is to provide a convienent and reliable way to call compiled C code from pypy.
+- How do we switch to PYPY
+  - When starting the driver you can choose the interpretor for driver and separately for the executor machine python process ids.
+  - If you are using spark submit still we can say which interpertor you want on the driver side and on the worker side.
+    - PYSPARK_DRIVER_PYTHON=pypy
+    - PYSPARK_PYTHON=pypy
+  - pypy might always be the best but in general if you are not bringing in your own C code then it should still be able to provide a huge speed increase.
+  
+| job       | CPython 2.7 | PyPy 2.3.1 | Speed up |
+|-----------+-------------+------------+----------|
+| WordCount | 41s         | 15s        |     2.7x |
+| Sort      | 46s         | 44s        |    1.05x |
+| Stats     | 174s        | 3.6s       |      48x |
+more [[https://github.com/apache/spark/pull/2144][here]] about the benchmark above
+
+* Short Topics
+** Serialization
+Used when
+- Transferring data over the network
+- Spilling data to disk
+- Caching to memory serialized
+- Broadcasting variables
+
+| java serialization                                                                                | kryo serialization                                                     |
+|---------------------------------------------------------------------------------------------------+------------------------------------------------------------------------|
+| uses java's ObjectOutputStream framework                                                          | Recommend serialization for production apps                            |
+| works with any class you create that implements java.io.Serializable                              | Use Kyro version 2 for speedy serialization (10x) and more compactness |
+| You can control the performance of serialization more closely by extending java.io.Externalizable | Requires you to register the classes you'll use in advance             |
+| Leads to large serilalized formats for many classes                                               | If set, will be used for serailizaing shuffle data between nodes and data serializing RDDs to disk |
+
+By default spark uses java serialization which is very slow. The reason that spark doesnot use kyro serialization by default is because certain custom classes are not automatically serializable using kyro serialization.
+** Churn
+*** High Churn
+- This happens when you start caching all the RDDs or caching without a care in your JVM heap. Since you are caching all the RDDs, eventually spark will start triggering GC which becomes an overhead.
+- The JVM is trying to evict old objects to make room for new one. The thing to remember here is the cost of garbage collection is proportional to the number of Java Objects. So a right choice of data structure can be helpful to lower the cost of garbage collection.
+- ex: using array of ints instead of an linked list is very helpful.
+*** Low Churn
+Caching only the RDDs that are required. Good practice.
+** Garbage Collection
+*** Parallel GC
+- don't use for spark streaming. The GC pauses are unacceptable
+- uses multiple threads to do young gen GC
+- default on single thread machines
+- Aka "throughput collector"
+- Good for when a lot of work is needed and long pauses are acceptable
+- Use cases: batch processing
+*** Parallel Old GC
+- don't use for spark streaming. The GC pauses are unacceptable
+- Uses multiple threads to do both young gen and old gen GC
+- Also a multithreading compacting collector
+- HotSpot does compaction only in old gen
+*** CMS GC 
+- good with spark streaming
+- Concurrent Mark Sweep aka "Concurrent low pause collector"
+- Tries to minimize pauses due to GC by doing most of the work concurrently with application threads.
+*** G1 GC
+- good with spark streaming
+- available starting Java7
+- Desinged to be a long term replacement for CMS
+- Is a parallel, concurrent and incrementallyy compacting low-pause GC
+** Jobs - Stages - Tasks 
+If you call an action on one of RDDs at the end of your DAG. 
+- The action will trigger a job to Run. 
+- The job will be made up of stages.
+  - sometimes the stages will run in parallel and sometimes they won't.
+- The stage will contain multiple tasks.
+  - the tasks will almost all the time run in parallel
+  - each task is reading a partition of the RDD and doing some processing on the items inside the RDD and emiting a new child partition out.
+- DAG Scheduler
+  - spark keeps building a DAG based on the different transformations the RDD has gone through.
+  - when an action is called spark the driver JVM will figure how to carve out the DAG into stage boundaries.
+    - may be from 200 RDD lineage graph may it will come up with 15 stage boundaries.
+    - splits the graph into stages of tasks
+  - The DAG scheduler then submits each stage to the Task scheduler.
+  - For the stages that can be processed parallely the DAG scheduler submits the stages in parallel, but the next stages that depended these stages will have to wait for all the stages that are being processed parallely to complete as they are dependent on all of them.
+    - The developer has little bit control on in which the stage the tasks are schduled by moving the business logic around.
+- Task Scheduler
+  - The task scheduler launches individual tasks
+  - retries the failed or straggling tasks.
+  - It takes a stage at a time and looks at the tasks inside and starts sending the tasks to executors.
+  - When it is done with a stage it will tell the DAG schedular and the DAG scheduler will decide to give the task scheduler a new task or more stages that can be run in parallel.
+- Checkout this talk([[https://www.youtube.com/watch?v=49Hr5xZyTEA][spark internals]]) by Matei Zahari
+** Lineage
+- The RDD graph has lineage. There is child RDD and there is one or more parent RDDs. One of the challenges is providing RDDs as an abstraction is choosing a representation for them that can track lineage across a wide range of transformations. The most interesting question in designing this interface is how to represent dependencies between RDDs.
+- To display the lineage of an RDD, spark provides a toDebugString method.
+*** Narrow dependencies
+This where each partition of the parent RDD is used by atmost one child RDD.
+- map
+- union
+- filter
+- join with inputs co-partitioned
+*** Wide dependencies
+This where multiple child partitions may depended on single parent RDD.Recomputing a dropped partition might require recomputing many of the previous partitions and it gets costly. Therefore it is a good idea to cache this RDDs to memory and disk.
+- groupByKey
+- join with inputs not co-partitioned
+** Shuffle
+*** Transformation and shuffles
+- How do you know id a shuffle will be called on Transformation?
+  - repartition, join, cogroup, and any of the *By or *ByKey transformations can result in shuffles.
+  - If you declare a numPartitions parameter. It'll probably shuffle.
+  - If a transformation constructs a shuffleRDD. It'll probably shuffle.
+  - combineByKey calls a shuffle (so do other transformations like groupByKey, which actually endup calling combineByKey)
+  - repartition calls a coalese which by default won't shuffle but can by setting the parameter shuffle=True. Generally used when the partitions are lopsided. 
+*** Perserve Partitioning
+- In the case of key value pair RDD where the lambda functions are not messing with the keys, you can have the child RDDs retain the parent partitioning.
+- You have to pass in an extra parameter called perservePartitioning=True for this, because spark doesn't know what going on inside the lambda functions.
+- Opertaions that benefit from partitioning:
+  - cogroup
+  - groupWith
+  - join
+  - leftOuterJoin
+  - rightOuterJoin
+  - groupByKey
+  - reduceByKey
+  - combineByKey
+  - lookup
+*** sorting
+**** why is it important
+- stresses shuffle which underpins everything from sql to mllib
+- sorting is challenging because there is no reduction in data.
+- sort 100 TB = 500 TB disk I/O and 200 TB over the network.
+**** engineering investment in spark
+- sort based shuffle (spark-2045)
+- netty native network transport (spark-2468)
+  - the old way of serving the map output files is slow. The file has to move from the local dir folder to the linux kernal buffer then to the exectuor and then to the NIC buffer then finally to the network.
+  - In the new netty native network transport (aka zero copy technique) the data is shipped directly to the NIC buffer.
+- external shuffle service (spark-3796) 
+**** Clever Application level Techniques.
+- GC and cache friendly memory layout
+- Pipelining
+** Broadcast Variables
+- One way to avoid shuffles when doing joining 2 datasets is to take adavantage of broadcast variables.
+- When one of the 2 datasets is small enough to fit into memory inside of a single executor then it can be loaded into a hashtable in the driver JVM and broadcast to  every executor and then the map transformation can be referenced to the hash table to the lookups.
+- They send large read only lookup table to all the nodes or send a large feature vector in a ML algorithm to all nodes.
+- They let the programmer keep a ready only variable cached on each machine rather than shipping a copy of it with tasks
+- Spark also attempts to distribute broadcast variables using efficient broadcast algorithms to reduce communication cost.
+  - http (old broadcast mechanism). The driver is send the entire file to every executor, which cause a bottle neck condition on the executor.
+  - bit-torrent (new mechanism). In this case the executors are also sharing the chunks that are available in the other executors.
+** Accumulators
+- count events that occur during job execution for debugging purposes. Ex: how many lines of the input file were blank? Or how many corrupt records were in the input dataset?
+- these are only variables that only be added using associative operations.
+- only the driver program can read the accumulator value. The executors don't know the global value of the executors.
+** Streaming
+- Can handle Gigabytes of data per second. It is a scala, java and python API.
+- Read data from
+  - TCP sockets
+  - Kafka
+  - Flume
+  - HDFS
+  - S3
+  - Kinesis
+  - Twitter
+- Processes the data
+  - map
+  - reduce
+  - join
+  - MLlib + Graphx
+  - SQL
+- write the results to
+  - HDFS
+  - Cassandra
+  - Dashboards
+  - Dat abases
+- scales to 100s of nodes
+- batch sizes as small as half a second.
+  - when data comes in make an RDD every 1/2 a second. 
+- Processing latency as low as 1 second.
+  - The RDDs made once the data comes in have to be processed(run a DAG on the RDD). The processing latency is as low as 1 second, this should always be less than the batch latency in which the RDDs are created because if the RDDs are created at a faster pace then spark actually process or you will begin to start behind.
+- How this works is
+  - there is a input data stream that is pushing data into spark streaming which will then make an RDD at a batch interval which cann't be lower then 1/2(500 millisecond level) a second. With spark you can't go down to 10 or 20 millisecond level. This covers 90-95% of the use cases. There are very specific use cases (high frequency trading) where you might want to go down to 10 or 20 millisecond level.
+  - These RDDs are then pushed into the spark core. A DAG gets applied to them and the output RDDs are then written to cassandra or whatever.
+  - The input streams are called Dstreams.
+
+* Common issues.
+** Memory Errors.
+- Default memory allocation in spark
+  - Cached RDDs (60% spark.storage.memoryFraction)
+    - when you call .persist() or .cache(). Spark will limit the amount of memory used when caching to a certain fraction of the JVMs overall heap set by spark.storage.memoryFraction.
+    - If you are not caching any RDDs you can reduce this to 10 or 20 percent. However it is good to always cache RDDs in memory.
+  - Shuffle Memory (20% spark.shuffle.memoryFraction)
+    - When performing shuffle operations. Spark will create intermediate buffers for storing shuffle output data. THese buffers are used to store intermediate results and aggreations in addition to buffering data that is going to be directly output as part of the shuffle.
+  - User Programs (20% remainder)
+    - Spark executes arbitrary user code. So user functions can themselves require substantial memory. For instance, if ause applicaition allocates large arrays or other objects, these will content for overall memory usage. User code has access to everything "left" in the JVM heap after the space for RDD storage and shuflle storage are allocated.
+- Executor JVM crashing with memory errors
+  - Error will be in one of logs where the linux kernel says it killed something because it is using up more memory than it is permitted.
+  - Findout which one of the above 3 is causing the issue. (user programs or shuffle memory mostly).
+    - user memory: there is no way you can set this in spark. One thing you can do is to reduce the spark storage memory fraction and spark shuffle memory fraction.
+    - shuffle memory error: if an error happens during a shuffle then it is most likely a shuffle memory error. Try increasing the spark.shuffle.memoryFraction.
+    - 
+* sources
+- Advanced Apache Spark Training By Sameer Farooqui.[[https://www.youtube.com/watch?v=7ooZ4S7Ay6Y][youtubeLink]]

@@ -1,0 +1,14 @@
+#+SETUPFILE: https://fniessen.github.io/org-html-themes/setup/theme-readtheorg.setup
+#+STARTUP: showall
+#+EXPORT_FILE_NAME: ../exports/shell.html
+#+OPTIONS: ^:nil
+
+* Shells
+- A sophisticated way to control your computer.
+- You can do more than the most basic opeations, more powerfully and quickly
+- Task that take alot of reetitie work with mouse can be automated.
+  - autocompletion
+** Introduction
+
+
+** Features

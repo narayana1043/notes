@@ -1,0 +1,72 @@
+#+SETUPFILE: https://fniessen.github.io/org-html-themes/setup/theme-readtheorg.setup
+#+STARTUP: showall
+#+EXPORT_FILE_NAME: ../exports/graph-theory.html
+#+OPTIONS: ^:nil
+
+* Introduction
+
+** Basics
+
+*** Relations
+
+A relation R on a set X is 
+- reflexive if (a,a) \in R, for each a \in X
+- irreflexive if (a,b) \in R, for each a \in X
+- transitive if (a,b) \in R and (b,c) \in R implies (a,c) \in R
+- symmetric if (a,b) \in R implies (b,a) \in R
+*** Graph
+
+A graph is a finite nonempty set V together with an irreflexive symmetirc relation R on V. Since R is symmetric for each ordered pair(u,v) \in R, the pari(v,u) also \in R where
+- V is the vertex set
+- E is the edges set. Each element of E is a set consisting of symmetric vertices from R called an edge.
+- Occasionally it is desirable to denote the vertex set and edge set of a graph G by V(G) and E(G), respectively. This particularly useful when there are 2 or more graphs under consideration.
+
+*** Vertices
+
+**** Adjacent Vertices: 
+Two vertices are adjacent in a graph if uv \in E(G)
+
+**** Non Adjacent Vertices:
+Two vertices are non adjacent in a graph if uv \notin E(G)
+
+*** Edges
+
+**** Adjacent Edges:
+If uv and uw are distinct edges of a graph G (ie., v \neq w), then uv and vw are adjacent edges.
+
+**** Incident Vertices to an Edge
+If e=uv \in E(G), then u and v are each incident to or incident with e.
+
+*** Directed Graph (Diagraph)
+- A directed graph is a finite non-empty set V together with an irreflexive relation R on V.
+- Each ordered pair in R is referred to as a directed /edge or arc (the word edge is not used in diagraphs)/.
+
+*** Networks
+By a network we mean a graph or a diagraph together with a function which maps the edge set into the set of real numbers.
+
+**** Undirected Network.
+A network resulting from a graph is called undirected network.
+
+***** Signed Graph
+A signed Graph is an undirected network whose functional values are +1 or -1. Since a postive or negative sign is attached to every edge of S.
+
+A neighborhood consists of several families. Two families may be friendly toward each other, unfriendly or may be indifferent toward (or may not even be acquainted with) each other. The situation can be represented by a signed graph S, where the vertices are joined by a positive edge if the corresponding families are friendly, by a negative edge if the corresponding families are unfriendly and by no edge otherwise.
+
+**** Directed Network.
+A network resulting from a digraph is called directed network. 
+
+*** Multi Graph
+If an undirected network is represented as a set of points in the plane and the points are joined by an integral number of curves or line segments, then the network is called a multigraph.
+Ex: Let M be a multigraph with edge set E and associated function f. If uv \in E and f(uv)=n, where n is a positive integer, then we say u and v are joined by n edges and we refer to these edges as multiple edges.
+
+*** Loops
+In all relations we have considered we assumed irreflexivity. It is quite possible that in the situation where the relation is not irreflexive. In this case we refer to the ordered pair(u,v) as a loop. If we remove the restriction 'irreflexive' in the definition of a graph we call the result a loop-graph.
+- Loop graph
+- Loop digraph
+- Loop networks
+- Loop multigraphs (also called pseudo graphs)
+*** Numbers
+- Order of G = |V|
+- Size of G = |E|
+- Degree of v in G = 
+
