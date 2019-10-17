@@ -36,6 +36,11 @@ Two vertices are non adjacent in a graph if uv \notin E(G). Have no common edge.
 
 **** even vertex
 An even vertex is an vertex with an even degree.
+**** Connected Vertices
+Two vertices /u-v/ in a graph G are connected if u=v, or if u \neq v and u-v path exists in G. A graph G is connected if every 2 vertices of G are connected; otherwise, G is disconnected.
+**** Cut Vertices
+- A vertex v in a connected graph G is called a cut-vertex if G - v is disconnected.
+- If v is a cut-vertex of G then G-v contains 2 or more components
 *** Edges
 
 **** Adjacent Edges:
@@ -43,6 +48,10 @@ If uv and uw are distinct edges of a graph G (ie., v \neq w), then uv and vw are
 
 **** Incident Vertices to an Edge
 If e=uv \in E(G), then u and v are each incident to or incident with e.
+**** Bridges (Cut Edges)
+- An edge e in a connected graph G is called a Bridge if G - e is disconnected.
+- If e is a bridge of G then G - e has exactly 2 components.
+
 *** Metrics
 - Order of G = |V|
 - Size of G = |E|
@@ -51,6 +60,7 @@ If e=uv \in E(G), then u and v are each incident to or incident with e.
 - For any graph G, the sum of the degrees of the vertices of a G equals to twice the number of edges of G. If G is a (p,q) graph with vertices v_{1}, v_{2}, ..., v_{p} then
 
   \sum_{i=1}^{p} deg v_{i} = 2q
+
 
 *** Types of Graphs
 **** Directed Graph (Diagraph)
@@ -97,4 +107,29 @@ Note: A complete graph of order p is (p-1) regular and is denoted by K_{p}
 - /is isomorphic to/ is a symmetric and transitive.
 - If 2 graphs are isomorphic then they have the same order & size but the vice versa is not true.
 - If G_{1} and G_{2} are isomorphic graphs, then the degrees of the vertices of G_{1} are exactly the degrees of the vertices of G_{2}. (necessary condition but not sufficient condition for isomorphism)
+- /pegionhole-principle/
+  - There is only one graph of order one (necessarily having size 0): that is, if G_{1} and G_{2} are both graphs of order one, then they are isomorphic.
+  - Similarly if there is only one graph of order 2 and size 0, and only one graph of order 2 and size 1.
+  - However there are 3 graphs of order 4 and size 3 which are not isomorphic to one another, but any other graph of order 4 and size 3 should be isomorphic to one of these 3.
+  - Definition: Let S be finite set consisting of n elements and let S_{1}, S_{2}, ..., S_{k} be a partition of S into k subsets. Then atleast one subset S_{i}, 1 \le i \leq k, contains at least \lceil n/k \rceil elements.
 
+**** subgraphs
+- Let G be a graph. A graph H id a subgraph of G if V(H) \sube V(G) and E(H) \sube E(G). 
+- If a graph F is isomorphic to a subgraph H of G, then F is also called a subgraph of G.
+***** Component of G
+A connected subgraph H of a graph G is called a component of G if H is not contained in any connected subgraph of G having more vertices or edges than H.
+
+**** Connected Graphs
+Two vertices /u-v/ in a graph G are connected if u=v, or if u \neq v and u-v path exists in G. A graph G is connected if every 2 vertices of G are connected; otherwise, G is disconnected.
+
+*** Traversals
+***** uv walk
+A /u-v walk/ in G is an alternating sequence of vertices and edges in G, begining with u and ending with v, such that every edge joins the vertices immediately preceding it and following it.
+
+***** uv trail
+- A /u-v trail/ in G in a graph is a /u-v walk/ which **doesnot not repeat any edge**.
+- A /u-v trail/ in which u=v and which contains at least 3 edges is called circuit.
+- A circuit which doesnot repeat any vertices (except the first and the last) is called a cycle.
+- A set of vertices and edges determined by a trail produce a subgraph.
+
+  
