@@ -21,7 +21,6 @@ A relation R on a set X is
 - transitive if (a,b) \in R and (b,c) \in R implies (a,c) \in R
 - symmetric if (a,b) \in R implies (b,a) \in R
 
-
 *** Vertices
 
 **** Adjacent Vertices: 
@@ -61,7 +60,6 @@ If e=uv \in E(G), then u and v are each incident to or incident with e.
 
   \sum_{i=1}^{p} deg v_{i} = 2q
 
-
 *** Types of Graphs
 **** Directed Graph (Diagraph)
 - A directed graph is a finite non-empty set V together with an irreflexive relation R on V.
@@ -82,7 +80,7 @@ A neighborhood consists of several families. Two families may be friendly toward
 A network resulting from a digraph is called directed network. 
 
 **** Multi Graph
-If an undirected network is represented as a set of points in the plane and the points are joined by an integral number of curves or line segments, then the network is called a multigraph.
+If an undirected network is represented as a set of points in the plane and the points are joined by an integral number of curves or line segments, then the network is called a multigraph. Mutligraph refers to a graph in which multiple edges are permitted or required.
 Ex: Let M be a multigraph with edge set E and associated function f. If uv \in E and f(uv)=n, where n is a positive integer, then we say u and v are joined by n edges and we refer to these edges as multiple edges.
 
 **** Loops
@@ -122,7 +120,17 @@ A connected subgraph H of a graph G is called a component of G if H is not conta
 **** Connected Graphs
 Two vertices /u-v/ in a graph G are connected if u=v, or if u \neq v and u-v path exists in G. A graph G is connected if every 2 vertices of G are connected; otherwise, G is disconnected.
 
+**** Eulerian Graphs
+- A graph containing a [[Eulerain circuit][eulerian circuit]] is called a eulerian graph.
+- A multigraph containing an eulerian circuit is an eulerain multigraph.
+- A mutligraph G is eulerian if and only if G is connected and every vertex of G is even.
+
+**** Traversal Graphs
+- If a graph G has a trail, not a circuit containing all vertices and edges of G, then G is called a traversable graph and the trail is called an eulerian trail.
+- A multigraph G is traversable if and only if G is connected and has exactly two odd odd vertices. Furthermore, any eulerian trail of G begins at one of the odd vertices and ends at the other odd verticex.
+- An interesting property of /Eulerain and Traversal/ graphs is once the vertices have been drawn, we can draw all the edges in one continous motion with lifting the pencil.
 *** Traversals
+
 ***** uv walk
 A /u-v walk/ in G is an alternating sequence of vertices and edges in G, begining with u and ending with v, such that every edge joins the vertices immediately preceding it and following it.
 
@@ -132,4 +140,29 @@ A /u-v walk/ in G is an alternating sequence of vertices and edges in G, beginin
 - A circuit which doesnot repeat any vertices (except the first and the last) is called a cycle.
 - A set of vertices and edges determined by a trail produce a subgraph.
 
-  
+***** Eulerain circuit
+A circuit containing all the vertices and edges of multigraph M is called an eulerian circuit in M. [[Eulers Solution]]
+
+
+* Problems
+
+** Konigsberg Bridge Problem
+There are 7 bridges which crossed the river. They connected 2 islands in the river with opposite banks. Can we cross the seven bridges in a continous walk without recrossing any of them?
+#+ATTR_HTML: width="100"
+[[file:images/konigsberg-bridge-problem.png]]
+
+- This is problem of determining whether a multi-graph M in the above figure has a trail (possibly a circuit) containing all edges.
+
+*** Eulers Solution
+- The choice of route inside each land mass is irrelevant. The only important feature is the sequence of bridges crossed.
+  - Replace the land mass with vertex and bridge with a node.
+  - It doesn't matter if the edges drawn are stright or curved or whether if one node is left or right of another.
+- Except at endpoints, whenever one enters a vertex by a bridge, one leaves the vertex by a bridge.
+  - # of times one enters a non-terminal vertex = # of times one leaves it.
+- Now if every bridge is traversed exactly once, it follows that, for each land mass (except for the ones choosen for the start and finish), the number of bridges touching the land mass should be even.
+  - However, all four of the land masses in the original problem are touched by an odd number of bridges (one is touched by 5 bridges, and each of the other 3 is touched by 3)
+  - Since, at most, two land masses can serve as the endpoints of a walk, the proposition of a walk traversing each bridge once leads to a contradiction.
+- There the necessary condition for a walk of a desired form is that the graph be connected and have exactly zero or two nodes of odd degree.
+
+** Eulerain and traversable graphs and multigraphs applications
+- useful for solving mazes, puzzels and similar problems.
