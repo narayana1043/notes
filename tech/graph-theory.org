@@ -165,4 +165,10 @@ There are 7 bridges which crossed the river. They connected 2 islands in the riv
 - There the necessary condition for a walk of a desired form is that the graph be connected and have exactly zero or two nodes of odd degree.
 
 ** Eulerain and traversable graphs and multigraphs applications
-- useful for solving mazes, puzzels and similar problems.
+useful for solving mazes, puzzels and similar problems.
+
+*** example 1
+Floor plan of a house is it possible to start someplace (either in a room or outdoors) and walk through every doorway once and only once?
+[[file:images/house-plan-1.png]]
+
+*** example 2
