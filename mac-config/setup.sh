@@ -11,6 +11,10 @@ brew cask install emacs
 brew install tree
 brew install gettext
 brew link --force gettext
+brew cask install mactex
+brew install imagemagick
+brew install kubernetes-helm
+brew instal jq
 
 # clone reqiured git repos
 git clone https://github.com/narayana1043/notes.git
