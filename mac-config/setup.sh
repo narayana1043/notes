@@ -15,6 +15,7 @@ brew cask install mactex
 brew install imagemagick
 brew install kubernetes-helm
 brew instal jq
+brew cask install graphviz
 
 # clone reqiured git repos
 git clone https://github.com/narayana1043/notes.git

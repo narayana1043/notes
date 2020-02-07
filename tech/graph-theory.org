@@ -79,9 +79,12 @@ A neighborhood consists of several families. Two families may be friendly toward
 ***** Directed Network.
 A network resulting from a digraph is called directed network. 
 
-**** Multi Graph
+**** MultiGraph
 If an undirected network is represented as a set of points in the plane and the points are joined by an integral number of curves or line segments, then the network is called a multigraph. Mutligraph refers to a graph in which multiple edges are permitted or required.
 Ex: Let M be a multigraph with edge set E and associated function f. If uv \in E and f(uv)=n, where n is a positive integer, then we say u and v are joined by n edges and we refer to these edges as multiple edges.
+
+**** MultiDiGraph
+A MultiGraph in which the edges are directed.
 
 **** Loops
 In all relations we have considered we assumed irreflexivity. It is quite possible that in the situation where the relation is not irreflexive. In this case we refer to the ordered pair(u,v) as a loop. If we remove the restriction 'irreflexive' in the definition of a graph we call the result a loop-graph.
@@ -90,7 +93,8 @@ In all relations we have considered we assumed irreflexivity. It is quite possib
 - Loop networks
 - Loop multigraphs (also called pseudo graphs)
 **** Complete Graph
-A graph is complete if every 2 of its vertices are adjacent
+A graph is complete if every 2 of its vertices are adjacent. A complete graph with n vertices (denoted K_n) is a graph with n vertices in which each vertex is connected to each of the others (with one edge between each pair of vertices). Here are first five complete graphs.
+[[file:./images/complete_graphs.png]]
 
 **** r-regular Graph
 If every vertex of a graph has a G has the same degree r, we say that G is regular of degree r or is r-regular.
@@ -127,20 +131,28 @@ Two vertices /u-v/ in a graph G are connected if u=v, or if u \neq v and u-v pat
 
 **** Traversal Graphs
 - If a graph G has a trail, not a circuit containing all vertices and edges of G, then G is called a traversable graph and the trail is called an eulerian trail.
-- A multigraph G is traversable if and only if G is connected and has exactly two odd odd vertices. Furthermore, any eulerian trail of G begins at one of the odd vertices and ends at the other odd verticex.
+- A multigraph G is traversable if and only if G is connected and has exactly two odd vertices. Furthermore, any eulerian trail of G begins at one of the odd vertices and ends at the other odd verticex.
 - An interesting property of /Eulerain and Traversal/ graphs is once the vertices have been drawn, we can draw all the edges in one continous motion with lifting the pencil.
+
 *** Traversals
 
-***** uv walk
+**** path
+A path is a sequence of consecutive edges in a graph and the length of the path is the number of edges traversed.
+
+**** circuit
+A circuit is path which ends at a vertex it begins.
+- Loop is an circuit of length one.
+
+**** uv walk
 A /u-v walk/ in G is an alternating sequence of vertices and edges in G, begining with u and ending with v, such that every edge joins the vertices immediately preceding it and following it.
 
-***** uv trail
+**** uv trail
 - A /u-v trail/ in G in a graph is a /u-v walk/ which **doesnot not repeat any edge**.
 - A /u-v trail/ in which u=v and which contains at least 3 edges is called circuit.
 - A circuit which doesnot repeat any vertices (except the first and the last) is called a cycle.
 - A set of vertices and edges determined by a trail produce a subgraph.
 
-***** Eulerain circuit
+**** Eulerain circuit
 A circuit containing all the vertices and edges of multigraph M is called an eulerian circuit in M. [[Eulers Solution]]
 
 

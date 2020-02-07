@@ -12,3 +12,13 @@
 
 
 ** Features
+
+* SFTP
+
+- -a to continue interrupted transfers rather than overwriting exsiting paritial or complete copies of files. If the paritial file differs from the file being transferred the resultant file is likely corrupted.
+- B specify a buffer size (default 32768 bytes = 32kb) increase to 1 MB.
+- R num_requests specifies how many requests can be outstanding at any one time. Increasing this will improve file transfer speed but will increase memory consumption (64 default) increase to 128
+- r recursively copy when uploading or downloading
+- cmds
+  - login: 
+  - execute: get -ra ./*
