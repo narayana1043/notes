@@ -5,6 +5,7 @@ xcode-select --install
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
 # brew install required libs
+brew install zsh
 brew install git
 brew install wget
 brew cask install emacs
@@ -21,4 +22,5 @@ brew cask install graphviz
 git clone https://github.com/narayana1043/notes.git
 
 # hard link files
-ln notes/home-config/emacs ~/.emacs
+ln notes/mac-config/home-config/emacs ~/.emacs
+ln notes/mac-config/home-config/zshrc ~/.zshrc
