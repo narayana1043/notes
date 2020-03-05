@@ -62,11 +62,6 @@ export LANG=en_US.UTF-8
 export PYTHONPATH="${PYTHONPATH}"
 export PATH=$PATH:/usr/local/mysql/bin
 
-############ emacs config #####################
-# task juggler
-export PATH=${PATH}:/usr/local/bin/tj3
-export WORKON_HOME=~/miniconda3/envs/
-
 ############ gremlin config #################
 export PATH=${PATH}:~/softwares/gremlin/bin
 
@@ -84,4 +79,3 @@ else
 fi
 unset __conda_setup
 # <<< conda initialize <<<
-
