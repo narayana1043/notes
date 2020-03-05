@@ -16,6 +16,7 @@
 ** Data transfer
 - [[https://docs.aws.amazon.com/neptune/latest/userguide/bulk-load.html][Loading data into Neptune]]
 - [[https://docs.aws.amazon.com/neptune/latest/userguide/bulk-load-tutorial-format.html][Neptune Load Formats]]
+
 * Titan on AWS
 ** [[https://aws.amazon.com/blogs/startups/amazon-dynamodb-storage-backend-for-titan-distributed-graph-database/#][Aws Dynamo DB Storage backend for titan graph]]
 *** Nice way to build the graph
@@ -24,13 +25,14 @@
 **** single item model 
 **** multi item model (may the right fit for us)
 
+
 * Janus Graph
 ** TODO Third Party Providers
 *** Run cloud formation to create the AWS Dynamodb backend for Janus Graph. [[https://github.com/awslabs/dynamodb-janusgraph-storage-backend][link]]
 /this project is not maintained anymore skip this step/
 The cloud formation for the gremlin server there has some issues. Follow the steps here. [[https://bricaud.github.io/personal-blog/janusgraph-running-on-aws-with-dynamodb/][link]]
 
-** Schema and Data Modeling. [[https://docs.janusgraph.org/latest/schema.html][chapter 5]]
+** Schema and Data Modeling. [[https://docs.janusgraph.org/basics/schema/][link]
 - comprises of vertex labels, edge labels and property keys
 - can be explicity or implicity defined. explicity defining the schema is good as it helps in keeping the graph robust.
 - extending the schema doesn't slow down query answering or database down time.
@@ -156,12 +158,12 @@ map = new HashMap();
 map.put("storage.backend", "cql");
 map.put("storage.hostname", "127.0.0.1");
 // this below line adds the graph name
-map.put("graph.graphname", "graphname");
+map.put("graph.graphname", "ikg");
 map.put("index.search.backend", "elasticsearch");
 map.put("index.search.hostname", "127.0.0.1");
 map.put("index.search.elasticsearch.transport-scheme", "http");
 ConfiguredGraphFactory.createConfiguration(new MapConfiguration(map));
-#+END_SRC
+#+End_SRC
 
 *** Connecting to the graph from gremlin python
 **** server side (not intended for users)
@@ -261,6 +263,9 @@ Remove index consists of 2 stages.
 
 ** Documentation Notes
 
+*** Getting started
+- https://docs.janusgraph.org/basics/gremlin/
+
 *** Crafted Machines
 - Blueprints
 - Pipes
@@ -277,9 +282,11 @@ Remove index consists of 2 stages.
   - It is same either we write it in java or javascript or python or console. Syntactial differences might be language specific. ex. lambda in groovy is different from that in python.
  
 ** Blogs
-LINK: https://dzone.com/articles/nature-pipes
 
 *** Pipes
+LINK: https://dzone.com/articles/nature-pipes
+
+**** Pipes
 
 Pipes is a lazy evaluation framework in that as the pipeline is iterated for results, the mappings are computing as needed. One of the core methods of Pipe is List Pipe.getPath(). This method returns the transformations that an object underwent through a pipeline. Any gremlin expression has a string representation that exposes the underlying pipes being used to represent the expression.
 
@@ -290,7 +297,7 @@ Pipes is a lazy evaluation framework in that as the pipeline is iterated for res
   
   g.V(1).sideEffect{x=it}.out('created').in('created').filter{it != x}.toString()
 
-*** Branch and Meta Pipes
+**** Branch and Meta Pipes
 There are 2 pipe subtypes that should be discussed: branch and meta pipes. A branch pipe is any pipe that alters the flow of a computation based on some decision criteria. The ifThenElse step of gremlin demonstrates the behaviour of the closure-based ifThenElse Pipe.
 
 The ifThenElse step take 3 closures: a condition-closure, a then-closure and finally, an else-closure. Other branch pipes include copySplit and the respective merging pipes which take multiple branches and yield a single flow: fairMerge and exhaustMerge.
