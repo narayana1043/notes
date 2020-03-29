@@ -25,4 +25,4 @@
 (require 'base-global-keys)
 
 (require 'lang-python)
-(require 'org-mode-customizer)
+(require './../emacs-customizations/org-mode-customizer)
