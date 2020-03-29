@@ -23,8 +23,10 @@ brew instal jq
 git clone https://github.com/narayana1043/notes.git
 
 # hard link for emacs setup
-# ln -s notes/config/bootstrap-emacs/ ~/.emacs.d
-ln -s notes/config/emacs-for-closure/ ~/.emacs.d
+# ln -s notes/config/bootstrap-emacs-zenburn/ ~/.emacs.d
+# ln -s notes/config/emacs-for-closure/ ~/.emacs.d
+ln -s notes/config/bootstrap-emacs-soloraized-dark/ ~/.emacs.d
+
 emacs &
 
 # hard link for z-shell config
