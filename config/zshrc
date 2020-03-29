@@ -28,16 +28,6 @@ setopt extendedglob
 export JAVA_HOME=$(/usr/libexec/java_home)
 export PATH="/usr/local/sbin:$PATH"
 
-# Setting PATH for Python 3.6
-# The original version is saved in .bash_profile.pysave
-PATH="/Library/Frameworks/Python.framework/Versions/3.6/bin:${PATH}"
-export PATH
-
-# Setting PATH for Python 3.7
-# The original version is saved in .bash_profile.pysave
-PATH="/Library/Frameworks/Python.framework/Versions/3.7/bin:${PATH}"
-export PATH
-
 # Setting PATH for hadoop
 export HADOOP_HOME=~/softwares/hadoop/
 export PATH=$HADOOP_HOME/bin:$PATH
