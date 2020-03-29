@@ -19,23 +19,32 @@ brew install tree
 brew instal jq
 # brew cask install graphviz
 
-# clone reqiured git repos
-git clone https://github.com/narayana1043/notes.git
+# clone reqiured git repo is not present else pull required
+if [[ ! -d notes ]]; then
+    git clone https://github.com/narayana1043/notes.git ~/notes/
+else
+    cd notes && git pull && cd ~
+fi
 
 # hard link the emacs customizations
 for file in ./notes/config/emacs-customizations/*.el; do
     for dir in ./notes/config/bootstrap-*/; do
-	echo $file $dir/elisp/${file##*/}
-	ln $file $dir/elisp/${file##*/}
+	ln -f $file $dir/elisp/${file##*/}
     done
 done
 
 # soft link for emacs setup
-ln -s notes/config/bootstrap-emacs-zenburn/ ./.emacs.d
+if [[ $1 == 'zenburn' ]]; then
+    rm -rf ~/.emacs.d
+    ln -s notes/config/bootstrap-emacs-zenburn/ ~/.emacs.d
+elif [[ $1 == 'solarized-dark' ]]; then
+    echo $1
+    rm -rf ~/.emacs.d
+    ln -s notes/config/bootstrap-emacs-solarized-dark/ ~/.emacs.d
+fi
 # ln -s notes/config/emacs-for-closure/ ./.emacs.d
-# ln -s notes/config/bootstrap-emacs-soloraized-dark/ ./.emacs.d
 
 emacs &
 
 # hard link for z-shell config
-ln -s notes/config/zshrc ./.zshrc
+ln -fs notes/config/zshrc ./.zshrc

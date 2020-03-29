@@ -1,4 +1,4 @@
-.PHONY: 
+.PHONY:
 
 help:
 	@cat Makefile
@@ -31,3 +31,6 @@ clean-local:
 	rm -r $(LOCAL_PATH)*
 
 clean-and-sync-s3: clean-s3 sync-to-s3
+
+my-mac:
+	~/notes/config/setup.sh solarized-dark
