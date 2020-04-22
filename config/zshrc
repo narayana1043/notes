@@ -55,6 +55,9 @@ export PATH=$PATH:/usr/local/mysql/bin
 ############ gremlin config #################
 export PATH=${PATH}:~/softwares/gremlin/bin
 
+# miniconda setup
+export WORKON_HOME=~/miniconda3/envs/
+
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
 __conda_setup="$('/Users/vmarni/miniconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"

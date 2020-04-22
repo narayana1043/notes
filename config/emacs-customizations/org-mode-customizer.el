@@ -5,7 +5,6 @@
 
 ;; TODO customization
 (use-package org
-  :pin melpa-stable
   :init
   (setq org-log-into-drawer "LOGBOOK")
   ;; enable org-indent-mode
