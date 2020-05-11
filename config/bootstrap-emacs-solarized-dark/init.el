@@ -24,7 +24,7 @@
     (require 'set-keys-windows)))
  ((string-equal system-type "darwin") ; Mac OS X
   (progn
-    (require 'set-keys-apple)))
+    (require 'set-keys)))
  ((string-equal system-type "gnu/linux") ; linux
   (progn
     (message "Linux"))))

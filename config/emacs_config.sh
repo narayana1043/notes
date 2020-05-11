@@ -21,4 +21,4 @@ fi
 emacs &
 
 # hard link for z-shell config
-ln -fs ~/notes/config/zshrc ./.zshrc
+ln -fs ~/notes/config/zshrc ~/.zshrc

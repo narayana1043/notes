@@ -36,7 +36,6 @@ export PATH=$HADOOP_HOME/bin:$PATH
 # Setting PATH for spark
 export SPARK_HOME=~/softwares/spark
 export PYSPARK_PYTHON=python3
-export PYSPARK_DRIVER_PYTHON=python3
 export PATH=$SPARK_HOME/bin:$PATH
 
 # Setting PATH for pyspark driver
