@@ -17,12 +17,13 @@
 - [[https://docs.aws.amazon.com/neptune/latest/userguide/bulk-load.html][Loading data into Neptune]]
 - [[https://docs.aws.amazon.com/neptune/latest/userguide/bulk-load-tutorial-format.html][Neptune Load Formats]]
 
+
 * Titan on AWS
 ** [[https://aws.amazon.com/blogs/startups/amazon-dynamodb-storage-backend-for-titan-distributed-graph-database/#][Aws Dynamo DB Storage backend for titan graph]]
 *** Nice way to build the graph
 *** Didn't prototype this and the reason is that it needs some initial configurations which might take sometime
 *** two different appraches
-**** single item model 
+**** single item model
 **** multi item model (may the right fit for us)
 
 
@@ -123,7 +124,7 @@ Provides access points in 2 scenarios.
 
 *** Configuring janus graph server  [[https://docs.janusgraph.org/latest/server.html#first-example-connecting-gremlin-server][Chapter 7]] [[https://docs.janusgraph.org/latest/deployment-scenarios.html][8]] [[https://docs.janusgraph.org/latest/configuredgraphfactory.html][9]].
 
-To be able to use the CGF you must configure your server to use ConfigurationGraphManagement API's. To do this you have to inject a graph variable named " ConfiguredManagementGraph " in your server's YAML's graphs map. 
+To be able to use the CGF you must configure your server to use ConfigurationGraphManagement API's. To do this you have to inject a graph variable named " ConfiguredManagementGraph " in your server's YAML's graphs map.
 
 For example
 #+BEGIN_SRC
@@ -134,7 +135,7 @@ graphs: {
 #+END_SRC
 
 In this example, our ConfigurationManagementGraph will be configured using the properties stored inside conf/JanusGraph-configurationmanagement.properties which for example looks like
-#+BEGIN_SRC 
+#+BEGIN_SRC
 gremlin.graph=org.janusgraph.core.ConfiguredGraphFactory
 storage.backend=cql
 graph.graphname=ConfigurationManagementGraph
@@ -142,7 +143,7 @@ storage.hostname=127.0.0.1
 #+END_SRC
 
 *IMP:*
-- the file at //scripts/empty-sample.groovy// binds the traversal objects to the global variables so they are available when someone connects to the gremlin server remotely. 
+- the file at //scripts/empty-sample.groovy// binds the traversal objects to the global variables so they are available when someone connects to the gremlin server remotely.
   - This is one file that should not be replaced before we actually configured the custom graph and added the schema.
     - use the file scripts/xxx-setup.groovy to configure and setup the graph with schema
 - However the graph has defined prior to starting the server with the file from the repo as it also contains the g traversal which is a binding to the configured-graph.
@@ -177,7 +178,7 @@ ConfiguredGraphFactory.createConfiguration(new MapConfiguration(map));
 - follow the [[https://docs.janusgraph.org/latest/connecting-via-python.html][steps]] from the documentation.
 - Good to know
   - DriverRemoteConnection takes in several parameters to make the connection.
-    #+BEGIN_SRC 
+    #+BEGIN_SRC
     class DriverRemoteConnection(RemoteConnection):
 
     def __init__(self, url, traversal_source, protocol_factory=None,
@@ -187,7 +188,7 @@ ConfiguredGraphFactory.createConfiguration(new MapConfiguration(map));
     #+END_SRC
     - traversal source is the "/trav/" in our case.
     - if you want to play with the graph use the traversal source "/gods/" which connects to the traditional graph of gods
-   
+
 ** Bulk Loading Data [[https://docs.janusgraph.org/latest/bulk-loading.html][chapter 37]]
 
 *** Use cases
@@ -204,7 +205,7 @@ ConfiguredGraphFactory.createConfiguration(new MapConfiguration(map));
   - ids.authority.wait-time
   - ids.renew-timeout
 - optimizing storage, writes and reads (be very careful, read more before experimenting)
-  - storage.buffer-size 
+  - storage.buffer-size
   - storage.read-attempts
   - storage.write-attempts
   - storage.attempt-wait
@@ -226,7 +227,7 @@ Janus graph distinguishes between 2 types of indexes.
   - these are very fast and efficient but limited to equality conditions, for a particular previously defined combination of vertex keys
 - Mixed
   - Can be used for look ups on any combination of indexed keys and support multiple condition predicates in addition to equality depending on the backing index store
- 
+
 Indexes are created through janus graph management system and index builder returned by JanusGraphManagement.buildIndex(String, class) where 1st arg is the name of the index and the second arg is the type of element to be indexed on (eg. Vertex.class)
 - The name of the graph index in unique.
 - Graph indexes built against newly defined property keys (keys that are defined  in the same mgmt transaction as index) are available immediately.
@@ -280,7 +281,7 @@ Remove index consists of 2 stages.
 - Gremlin is Gremlin is Gremlin.
   - It is same when written against an in-memory graph with OLTP or written against Big Graph with OLAP.
   - It is same either we write it in java or javascript or python or console. Syntactial differences might be language specific. ex. lambda in groovy is different from that in python.
- 
+
 ** Blogs
 
 *** Pipes
@@ -294,7 +295,7 @@ Pipes is a lazy evaluation framework in that as the pipeline is iterated for res
 - transform: given an object of type S emit an object of type E.
 - filter: Given an object of type S emit it or not.
 - sideEffect: A side-effect pipe implements SideEffectPipe<S,T> and takes an object of type S and emits that object. However, in the process, it yields some computational side-effect that can for instance be used later in the traversal computation. The side-effect object id of type T. The example below makes  use do the most generic side-effect pipe: SideEffectClosurePipe. The example below calculates vertex 1's co-developeres -- that is, those vertices that have worked with vertex 1 on a project. Note that a vertex can not be their own co-developer and thus, sideEffect and filter are used appropriately to express this abstract co-developer and thus, sideEffect and filter are used appropriately to express this abstract co-developer relationship.
-  
+
   g.V(1).sideEffect{x=it}.out('created').in('created').filter{it != x}.toString()
 
 **** Branch and Meta Pipes
@@ -310,11 +311,262 @@ The above code snippet and diagram demonstrate the behaviour of back (BackFilter
 
 g.V(1).out('knows') --> (2,4)
 g.V(1).out('knows').name --> (vadas, josh)
-g.V(1).out('knows').name.filter{it[0]=='v'} --> (vadas) 
+g.V(1).out('knows').name.filter{it[0]=='v'} --> (vadas)
 g.V(1).out('knows').name.filter{it[0]=='v'}.back(2) --> V(2)
 
 It is also possible to use named-steps instead of integers to denote how many steps to back up to. As an expression becomes more complex, using named-steps makes the expression more readable and manageable.
 
-LoopPipe is both a meta-pipe and branch pipe in that is can control the flow of objects and like BackPipe make use of internal pipes during its operations 
+LoopPipe is both a meta-pipe and branch pipe in that is can control the flow of objects and like BackPipe make use of internal pipes during its operations
 
 g.v(1).out.loop(1){it.loops < 3}
+
+* GRAKN
+
+** Services
+
+*** Server
+The knowledge server is where grakn stores the data in keyspaces.
+*** Console
+- The Grakn console interacts directly with a given keyspace that contains the grakn knowledge graph.
+
+*** Workbase
+- Connects to Grakn server and interacts with Keyspaces.
+- Workbase allows us to use execute Graql get and compute ath queries, and visualise and investigate their results.
+- A tool to test and experiment with your newly created Grakn Knowledge graph or that you prefer a graphical interface for reading data from Grakn.
+
+*** Client
+- Is an interface which we can use to read from and write to a Grakn Knowledge graph. If we are building an application that uses a Grakn knowledge graph as its database, we would need a Grakn client at our application layer to handle the database operations.
+- All Grakn clients share a common architecture of which the main components are
+  - *Client* is responsible for connecting to the Grakn Server. We then use the connection to manage keyspace and sessions
+  - *Session* is responsible for connecting to our application to a particular keyspace. This connection would then allow opening transactions to carry out queries. We can think of a session as a two-way long-lasting tunnel that connects our application to a particular keyspace on the Grakn server.
+  - *Transaction* is responsible for performing write and read operations over the types and instances with the connected keyspace. When executing a query to retrive data, an iterator is returned, which can then be lazily consumed to execute a request on the server to return the next concrete result.
+- Futures and Async Queries
+  - Queries can be computed asynchronously on the grakn serer whilst local processing takes place.
+- Investigating Answers
+  - Depending on the type of the query carried out by a transaction, we can retrieve different forms of answers. These answers, regardless of their type, all contain concepts. We can then use the methods introduced by the Concept API to obtain more information about the retrieved concept and its surroundings. Furthermore, the *Concept API* allows us to traverse the neighbours of a specific concept instance to obtain more insights
+- Grakn accetps instructions and provides answers only in its own language - Graql..
+
+
+** Graql
+- Graql is the language for the Grakn knowledge graph.
+- Whether it's through the Grakn Console, Workbase or one of the Grakn clients.
+
+*** Schema
+The Grakn schema sets the foundation for a Grakn knowledge graph. When modelled thoroughly, the schema provides us with a knowledge graph that benefits from logical integrity, is flexible towards change, capable of automated reasoning, and enables writing intuitive queries.
+
+**** Why schema?
+Schema is a means to address the problems of managing and handling unstructured or loosely structured data.
+
+Problems with loosely structured data?
+
+- Integrity
+  - Lack of control over the validity of data.
+  - No guarantee on data consistency and validity.
+- Accessibility and retrieval
+  - Lack of facilities for meaningful query answering.
+  - Efficient querying is harder.
+- Maintenance
+  - Lack of data independence
+  - Model changes and their propagation are harder.
+- Extra App Logic
+  - Pushes the responsibility to the user/developer.
+  - Error prone and hard to maintain.
+
+**** What is a Grakn Schema?
+Grakn schema is an inherent part of the knowledge graph that describes how the data is and can be structured.
+
+In the domain of schema-first database knowledge systems, database desings involves three schema:
+- A high level conceptual schema, that models the problem and usually involves some variation of the entity-relation model.
+- A mid level logical schema, that depends on the database type we are using. For example if we are going relational, this would involve turning the conceptual model into tables and going over a series of normalisation steps of the schema.
+- A low level physical schmea, that requires us to optimise our schema according to how physical resources are distributed.
+
+With Grakn, thanks to the high-level knowledge model, the schema closely resembles the conceptual schema, essentially avioding the hassle of going through the other two modelling steps. The grakn system takes case of this. This greatly simplifies the design process, providing us with, what can be considered, a highly normalised distributed schema with the need of going through the logical and physical modelling.
+
+**** Grakn Data Model
+
+***** Concepts
+Everything that describes a domain in a Grakn knowledge graph is a concept. This includes the /elements of the schema/ (namely *types* and *roles*, which we call /schema concepts/) and the /actual data instances/. We refer to a data instance as a *thing* - they can be thought of as instance of types defined in the schema.
+
+***** Types
+
+Types consitute the core of the schema. They provide the necessary vocabulary to talk about our domain. They come in 3 flavours.
+- Entities
+- Relations
+- Attributes
+
+Apart from serving as a means of classification, types also define behaviours of their instances. Consequently, types also define the following behaviours:
+- has [attribute type]
+- plays [role]
+- relates [role]
+
+****** Entities
+Entities are the main actors of our domain. These are usually the type of things we want to know about. Entity types provide means of classifying the objects in our domain
+
+****** Relations
+Relations connect other things together. Each relation can connect a number of things. A thing's participation in a relation is characterised by a *role* that can be played in that relation. Each relation is required to have at least one role.
+
+****** Attributes
+Attributes are used to characterise with small pieces of data (think of numbers, strings, dates etc.). Consequently, by defining attributes we can attach values of a specified value type to  our instances.
+
+****** has [attribute type]
+The ability to participate in relations of a specified type attached to an instance.
+
+****** plays [role]
+The ability to participate in relations that allow for that role to be played.
+
+****** relates [role] (only relation)
+The ability for other instances to play the given role instances of the defined relation type.
+
+***** Type Hierarchies
+Besides the modularity that the concept types provide, we are free to form subtype relationships between concept types. For a given child concept type that subtypes a parent concept type, the child concept type inherits the attributes owned by the and roles played by the parent type. The mechanism is analogous to subclassing in OOPs. Each concept type can have only a single parent type - multiple inheritance is not supported. Subtyping not only allows us to mirror the true nature of a dataset as perceived in the real world but also enables automated reasoning.
+
+***** Roles
+*Roles* specify the nature of the connection between instances. They are not types themselves. That means, we cannot have a thing which is an instance of a role, but we can have things playing a role in a specific relation. In the schema, we need to specify what role relates to each relation type and who can play this role. Thanks to roles, we are able to guarantee the logical integrity of the data, disallowing marriage between a person and a building, for example. Unless we specifically allow such a relationship in the schema.
+
+***** Rules
+Lastly, the Grakn schmea is completed with Graql Rules. Rules are used for a query-time capture of dynamic patterns in the data and performing deduction. Rules are the building blocks of automated reasoning in Grakn.
+
+***** Reserved Keywords
+
+****** Native types
+- thing
+- entity
+- attribute
+- relation
+- role
+- rule
+
+****** Data types
+- long
+- double
+- string
+- boolean
+- datetime
+
+****** Query commands
+- define
+- undefine
+- match
+- get
+- insert
+- delete
+- compute
+
+****** Delete and get query modifiers
+- offset
+- limit
+- group
+- sort
+- asc
+- desc
+
+****** Compute query
+- centrality
+- using
+
+****** Statement properties
+- abstract
+- as
+- id
+- type
+- isa
+- isa!
+- sub
+- sub!
+- key
+- has
+- plays
+- relates
+- value
+- regex
+- when
+- then
+
+****** Operators
+- or
+- not
+- like
+
+****** Literal values
+- true
+- false
+
+**** Concepts
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2020-07-27 Mon 20:09]
+:END:
+
+***** define
+used to develop the schema, which represents the dataset stored in the grakn knowledge graph. We use define to add new entities, relations and rules to the schema.
+***** entity
+An entity is a thing with a distinct existence in the domain. For example, organisation, location and person. The existence of each of these entities is independent of any other concept in the domain.
+
+- Can assign attribute using the *has* keyword
+- Can assign a unique identifier using the *key* keyword.
+- An entity can play a role in a relation. We use *plays* keyword followed by the roles model.
+- We can define entity to inherit all attributes owned and roles played by another entity.
+- Abstract entity. There may be scenarios where a parent entity is only defined for other entities to inherit and under no circumstance, do we expect to have any instances of this parent.
+
+***** relation
+A relation describes how 2 or more things are in some way connected to each other. For example, firendship and employment. Each of these relations must relate to roles that are played by something else in the domain. In other words, relations are dependent on the existence of at aleast two other things.
+
+****** Role Players of a relation
+- Entites, attributes and even other relations can play a role in a relation. To do this we make use of the plays keyword followed by the role's label.
+- A relation can relate to any number for roles and attributes.
+
+****** Assign attributes to relation
+- We can assign any number of attributes to a relation. To do so, we use the *has* keyword followed by the attribute's label.
+- We can use the *key* keyword followed by the attribute's label.
+
+****** Subtype relation.
+- We can define a relation to inherit all attributes owned, and roles related to and played by another relation.
+- The ability to subtype relations not only mirror the reality of the dataset as perceived in the real world but also enables automated reasoning using type hierarchies.
+
+****** Abstract relation
+Similar to abstract entity there may be scenarios where a parent relation is only defined for other relations to inherit and under no circumstance, do we expect to have any instances of this parent.
+
+***** Attribute
+An attribute is a piece of information that determined the property of an element in the domain. For example name, language and age. To define a new attribute we use the sub keyword followed by *attribute*, *value* and then type of desired value.
+
+*IMPORTANT*
+/Attributes in Grakn are modeled differently to columns in a relational database.The attribute with the value of, for instance 2020-01-01, exists only once in the database and shared among any number of instances that may own it. this is useful when we need to query the graph for anything that has the start-date attribute with value 2020-01-01. It's important to remember this when performing write operations on instances of an attribute type./
+
+*A concept type can have any number of the same attribute that holds different values* In other words, a concept type has many-to-many relation with its attributes.
+
+****** Restrict attribute's value by Regex
+Optionally we specify a regex that the values of an attribute type must conform to. To do this, we use the regex keyword followed by a Java Regex Pattern
+
+****** Owners of an attributte
+Entities, relations and even attributes can own one or more attributes of their own. To do this we make use of the *has* keyword followed by the attribute's label.
+
+****** Define an attribute to play a role
+An attribute can play a role in a relation. To define the role played by an attribute, we use the plays keyword followed by the role's label.
+
+***** undefine
+Used to remove the definition of a type or its association with other types from the schema.
+
+- Undefine an attributes association
+- Undefine a relation
+- undefine a subtype
+
+**** Rules
+
+***** What is a Rule?
+Grakn is capable of querying over data via pre-defined rules. Graql rules look for a given pattern in the dataset and when found, create the given queryable relation (/only for time being of the give transaction/). Automated reasoning provided by rules is performed at query (run) time. Rules not only allow shortening and simplifying commonly-used queries but also enable knowledge discovery and implementation of business logic at the database level.
+
+The rule based reasoning allows automated capture and evolution of patterns with the knowledge grah. Graql reasoning is performed at query time and is guaranteed to be complete. Thanks to the reasoning facility, common patterns in the knowledge graph can be defined and associated with existing schema elements. The association happends by means of tules. This not only allows to compress and simplify typical queries, but offers the ability to derive new non-trivial information by combining defined patterns. Once a query is executed, Graql will not only query the knowledge graph for exact macthes but will also inspect the defined rules tocheck whether additional information can be found(inferred) by combining the patters defined in the rules. The completeness property of Graql reasoning guaranteers that for a given content of the knowledge graph and the defined rule set, the query result shall contain all possible answers derived by combining database lookups and rule applications.
+
+- The facts defined via rules are in general not stored in the knowledge graph. However by defining the rule in the schema, at query time the extra fact will be generated so that we can always know who the siblings are.
+- Rules are part of the schema and can be queried the same way as other schema elements.
+- Rules like any other schema members can be undefined.
+- Rules like any other schema memebers can also be undefined.
+
+***** Functional Interpretation
+Another way to look at rules is treat them as functions. In that way, we treat each statement as a function returning either true or false.
+
+*Rules are a powerful tool that allows to reason over the explicitly stored data and produce implicit knowledge at run-time*
+*** TODO Pattern
+/Query pattern anatomy/
+
+
+*** TODO Query

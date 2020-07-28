@@ -26,7 +26,7 @@
 
 (require 'lang-python)
 (require 'org-mode-customizer)
-
+(require 'graql-mode)
 
 ;; check os to configure key bindings
 ;; check OS type
