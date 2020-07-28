@@ -1,0 +1,32 @@
+* Definitions
+** Government Sponsored Enterprise (GSE)
+A government sponsored enterprise is a quasi-government entity established to enhance the flow of credit to specific sectors of the american economy. They are
+- privately held
+- provide public financial services
+- help facilitate borrowing for all sorts of inviduals, from students to homeowners.
+For example, Freddie Mac was orginally established as GSE in the housing sector to encourage homeownership among the middle class and the working class.
+** How a GSE works?
+Government sponsored enterprise don't lend money to the public directly. Instead they guarantee thrid-party loans and purchase loans in the secondary market, thereby proivide money to the lenders and financial institutions. They  issue short and long term bonds referred to as agency bonds. The degree to which an agency bond issuer is considered indepedent of the federal government impact the level of its *default risk*. Bond investors holding most but not all types of agency bonds have their interest payments exempt from state and local taxes.
+
+Although GSE bonds carry the implict backing of the US government, they are not direct obligations of it, unlike Tresuary bonds. For this reason, these securities will offer a slightly higher yield than Tresuaries, since they have somewhat if slightly, higher credit and default risk.
+** Business
+Presently GSEs act as financial intermediaries to assist lenders and borrowers in housing and argriculture. Fannie Mae and Freddie Mac, the two most prominent GSEs, purchase mortages and package them into mortage-backed securities(MBS), which carry the financial backing of Fannie Mae and Freddie Mac. Because of this GSE financial backing, these MBS are particularly attractive to investors and are also eligible to trade in the "to-be-announced" or "TBA" market.
+
+In addition, the GSEs created a secondary market loans through guarantees, bonding and securitization. This has allowed primary market debt issuers to increase loan volume and decrease the risks associated with individual loans. This is also provides standardized instruments (securitized securities) for investors.
+** Ownership
+- Some of the GSEs (such as Fannie Mae & Freddie Mac) have been privately owned but publicly chartered.
+- Others such as Frederal Home Loan Banks are owned by corporations that use their services.
+** Implicit Guarantee
+GSE securities carry no explicit government guarantee of creditworthiness, but lenders grant them favorable interest rates, and the buyers of their securities offer them high prices.
+** List of GSEs
+*** Housing
+- The eleven Federal Home Loan Banks (FHL Banks) 1932
+- Federal National Mortage Association (Fannie Mae)  1938
+- Federal Home Loan Mortage Corporation (Freddie Mac) 1970
+*** Veteran
+- National Veteran Business Developement Corporation. 1999
+*** Farming
+- Federal Farm Credit Banks (FC Banks) 1916
+- Federal Agricultural Mortage Corporation (Farmer Mac) 1987
+*** Education
+- SLM Corporation (Sallie Mae) 1972-1995.
