@@ -15,7 +15,7 @@ A graph is a finite nonempty set V together with an irreflexive symmetirc relati
 
 *** Relations
 
-A relation R on a set X is 
+A relation R on a set X is
 - reflexive if (a,a) \in R, for each a \in X
 - irreflexive if (a,b) \in R, for each a \in X and b \in X and a \neq b
 - transitive if (a,b) \in R and (b,c) \in R implies (a,c) \in R
@@ -23,7 +23,7 @@ A relation R on a set X is
 
 *** Vertices
 
-**** Adjacent Vertices: 
+**** Adjacent Vertices:
 Two vertices are adjacent in a graph if uv \in E(G). Have a common edge.
 
 **** Non Adjacent Vertices:
@@ -77,7 +77,7 @@ A signed Graph is an undirected network whose functional values are +1 or -1. Si
 A neighborhood consists of several families. Two families may be friendly toward each other, unfriendly or may be indifferent toward (or may not even be acquainted with) each other. The situation can be represented by a signed graph S, where the vertices are joined by a positive edge if the corresponding families are friendly, by a negative edge if the corresponding families are unfriendly and by no edge otherwise.
 
 ***** Directed Network.
-A network resulting from a digraph is called directed network. 
+A network resulting from a digraph is called directed network.
 
 **** MultiGraph
 If an undirected network is represented as a set of points in the plane and the points are joined by an integral number of curves or line segments, then the network is called a multigraph. Mutligraph refers to a graph in which multiple edges are permitted or required.
@@ -116,7 +116,7 @@ Note: A complete graph of order p is (p-1) regular and is denoted by K_{p}
   - Definition: Let S be finite set consisting of n elements and let S_{1}, S_{2}, ..., S_{k} be a partition of S into k subsets. Then atleast one subset S_{i}, 1 \le i \leq k, contains at least \lceil n/k \rceil elements.
 
 **** subgraphs
-- Let G be a graph. A graph H id a subgraph of G if V(H) \sube V(G) and E(H) \sube E(G). 
+- Let G be a graph. A graph H id a subgraph of G if V(H) \sube V(G) and E(H) \sube E(G).
 - If a graph F is isomorphic to a subgraph H of G, then F is also called a subgraph of G.
 ***** Component of G
 A connected subgraph H of a graph G is called a component of G if H is not contained in any connected subgraph of G having more vertices or edges than H.
