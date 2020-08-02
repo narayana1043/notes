@@ -1,7 +1,15 @@
 #+SETUPFILE: https://fniessen.github.io/org-html-themes/setup/theme-readtheorg.setup
 #+STARTUP: showall
-#+EXPORT_FILE_NAME: ../exports/graph-dbs.html
+#+EXPORT_FILE_NAME: /var/tmp/graph-dbs.html
 #+OPTIONS: ^:nil
+
+* WHY Graphs?
+- A graph db is a recommendation for problems that require multiple joins on different table in SQL.
+  - SQL is too low level, 3NF, killed by joins
+- NoSQL db have
+  - No Schema
+  - No Constraints
+  - too level
 
 * [[https://docs.aws.amazon.com/neptune/latest/userguide/intro.html][AWS Neptune]]
 ** Highlights from [[https://docs.aws.amazon.com/neptune/latest/userguide/intro.html][user guide]]
@@ -320,7 +328,51 @@ LoopPipe is both a meta-pipe and branch pipe in that is can control the flow of 
 
 g.v(1).out.loop(1){it.loops < 3}
 
+
 * GRAKN
+
+** Why Grakn
+
+[[https://www.youtube.com/watch?v=bCxpNNzbz8M][from here]]
+- SQL
+  - too low level
+  - 3NF (working at the logical level)
+  - Queries can easily be killed by join
+- Graph/No SQL
+  - No Schema
+  - No Constraints
+  - lowel level data
+- RDF/OWL
+  - verbose
+  - built for the web (open-world)
+  - designed for experts of logic
+  - low level data
+
+Common Problems
+- Could not model complex domains
+- Could not simplify verbose queries
+- Could not reuse analytical algorithms
+
+Solution: Grakn & Graql, Grakn being the knowledge representation system and Graql is a query language.
+
+|------------+------------------|
+| Database   | work with        |
+|------------+------------------|
+| Relational | tables           |
+| Graph      | nodes & edges    |
+| Document   | Documents        |
+| Grakn      | ER Diagram Model |
+|------------+------------------|
+
+
+** Knowledge Model
+The knowledge schema represents
+- type hierarchies
+- hyper relations
+- rules
+[[file:images/grakn-knowledge-model.png]]
+
+According to image we will be working with entities, attributes and relations which are called things. Things can play roles in relations.
 
 ** Services
 
@@ -570,3 +622,247 @@ Another way to look at rules is treat them as functions. In that way, we treat e
 
 
 *** TODO Query
+
+* SPARQL (semantic web) ([[https://www.youtube.com/watch?v=e5RPhWIBcY4&list=PLea0WJq13cnDDe8V7eVLReIaOnFztOEAq][link]])
+
+** semantic web
+Example: Imagine you want to buy some airline tickets and visit airline website & enter souce & destination & dates and stuff and the website starts to list tickets, prices and times (skyscanner.net). What these websites do in behind is they scan and analyze the webistes html and get retrive the data and present it here. But if host website changes then they have to go back and fix the websites.
+
+What if those websites can share the data and the scemantics of that data over the web for use by applications with a set of standards.
+
+The semantic web sets a set of standards and
+- best practices for sharing data
+- the semantics of that over the that data over the web by use by application
+
+*** Standards
+- The RDF data model.
+- The SPARQL query Language.
+- The RDF Schema and OWL standards for storing vocabularies and ontologies.
+
+*** Best Practices
+- Use URIs to name things
+- Use of RDF to model data
+- Use SPARQL to query to data.
+
+  They provide guidelines for the creation of an infrastructure for the semantic web
+
+** Concepts
+*** OWL
+OWL (W3C Ontology language) lets us store valuable bits of meaning so that we can get more out of our data.
+
+example ontology: hasSpouse. A hasSpouse B means B hasSpouse A.
+*** URLs, URIs, IRIs and Namepaces
+**** URL
+Uniform Resource Locator
+ex: http://www.learningsparql.com/resource/index.html
+
+server: learningsparql.com, can also be IPs
+dir on server: resources
+file we are trying to reach: index.html
+
+**** URN
+Uniform Resource Names
+used for example to identifiy books
+ex: urn:isbn:006251587x
+/note commonly used/
+
+**** URI
+Universal Resource Identifier
+- encompasess both URLs and URNs
+- most URIs are URLs.
+ex: http://xmlns.com/foaf/0.1/Person
+foaf onttology ([[https://en.wikipedia.org/wiki/FOAF_(ontology)][wiki]]) (Fried of a friend) is a machine-readable ontology describing firends, their activities  & their realtionships to other people. There is no real webpage in the above link, it redirects to somewhere where we can find some vocabulary about the Person.
+**** IRIs
+Inernationalized Resource Identifiers
+IEFT (Internet engineering task force) released IRIs. These are URIs, but can have extra characters like chinese etc.
+**** Namespace
+- In XML, what if two sets of elements for two different domains use the same name for 2 different things?
+  - example is there can be title for person & book.
+- With URI we can have a namespace and then we can define set of names (vocabulary) that we can use for our purposes.
+*** Using URLs, URIs & Namespaces.
+- The name for the Dublin Core standard set of basic metadata terms is the URI
+  - http://purl.org/dc/elements/1.1
+- An XML documents main enclosing element often includes the attribute setting
+  - xlmns:dc="http://purl.org/dc/elements/1.1"
+- To indicate that the dc prefix will stand for the Dublin Core namespace URI in that document
+- Imagine that an XML processor found the following element in such a document: <dc:title>Weaving the Web</dc:title>
+- It would know that it meant title in the Dublin Core sense (the title of a work)
+- Like XML, RDF lets you define a prefix to represent a namespace URI.
+*** Resource Description Framework (RDF)
+- RDF is a language for the resprentation of resources.
+  - A resource can be anything. (sun, moon, man, woman, animal etc)
+  - Within the contect of the web relevance is given to web resources, i.e. anything that can be located via URL
+  - The basic building blocks is the statement (triple).
+**** RDF Overview
+- One of the main application is data integration.
+- W3C Recommendation since 1998
+- RDF is a datamodel
+- Orginally used for metadata for web resources, then generalized for other applications
+- Universal, machine readable exachange format
+- Data structured in graphs (vertices, edges)
+**** RD2RDF
+[[file:./images/RD2RDF-1.png][Table 2 RDF]]
+[[file:./images/RD2RDF-2.png][Subject object predicate]]
+- From tuples to triples
+- Relational data can be represented as triples
+  - Row Key --> Subject
+  - Column --> Property (predicate)
+  - Value --> Value
+    [[file:./images/RD2RDF-3.png][RD2RDF-1]]
+    [[file:./images/RD2RDF-4.png][RD2RDF-2]]
+- Even if there are lot of data we will just have a lot more triples.
+***** Triples
+- Triples are the statements about things (resources), using URIs and Literal values.
+[[file:./images/triple.png][triple]]
+***** Graph
+- All triples are graph and if we have plently triples then we can represent them as graph.
+- RDF graphs are different from mathematical graphs.
+[[file:./images/RDF-Graph-1.png][RDF-Graph-1]]
+[[file:./images/RDF-Graph-2.png][RDF-Graph-2]]
+[[file:./images/RDF-Graph-3.png][RDF-Graph-3]] using URIs to represent the subject and predicate (property).
+- Blank Nodes facilitate existential quantification for an invidiual with certain properties with out naming it.
+- Allowed assignments for RDF triple
+  - Subject: URI or blank node
+  - Predicate: URI
+  - Object: URI, blank node or literal
+- Node and edge labels should be unambiguous so that the original graph is reconstructable from triple list.
+****** Literals
+- used to model data values
+- representation as strings
+- interpretation through datatype
+- literals without datatype are treated as strings
+- Literals may never be the origin of a node of an RDF graph.
+[[file:./images/Literals.png][literals]]
+**** RDF formats
+Most popular RDF formats
+| format     | description                               |
+|------------+-------------------------------------------|
+| N-Triples  | focuses on simple parsing                 |
+| Turtle     | focuses on human readability              |
+| Notation 3 | with adavanced features beyond RDF        |
+| RDF/XML    | official XML serialization of RDF         |
+| RDF/Json   | a proposal for serializing RDF in JSON    |
+| Json-LD    | a proposal for expressing RDF in JSON     |
+| RDFa       | a mechanism for embedding RDFa in (X)HTML |
+**** Saving RDF in Files & Databases.
+- The technical term for saving RDF as a string of bytes that can be saved on a disk is serializtion.
+- All RDF serializations so far have been text files with different syntaxes used to represent the triples.
+- If you need to store a very large number of triples, keeping them as Turtle or RDF/XML in one big text file may not be your best option.
+- A system that indexes data and decides with data to load into memory when (i.e a database management system) can be more efficient.
+  - There are ways to store RDF in a RDMS such as MySQL or Orcale.
+  - The best way is a database manager optimized for RDF triples.
+  - We call this a triple store.
+    - Open Source
+      - Apache Jena
+    - Commerical
+      - Virtuoso
+**** RDF Schema
+understanding these things will help understand semantic web better
+- RDF Scema
+- What OWL does, why it is there?
+***** what is a vocabulary?
+- set of terms stored using a standard format that people can reuse.
+  - A vocabulary of property names typically has its own namespace to make it easier to use it with other sets of data. (URIs, URLs etc)
+- Where do we find them?
+  - There are standard vocabularies online.
+  - There might be websites
+  - Ask experts.
+- Vocabularies are usually stored using RDF Schema and OWL standards.
+***** RDF Schema (RDFS) (RDF Vocabulary Description Language)
+- It gives people a way to describe vocabularies. RDF Schema is itself a vocabulary with a schema whose triples declare facts.
+  - You describe these vocabularies with RDF.
+- RDF Schema lets us define new classes of resources.
+- This metadata is just accessible to your SPARQL queries as the data itself. (RDF Schema is data about data, so the term metadata, which is also in triplets)
+  - Dublin Core is a standard set of basic metadata.
+
+****** example
+ [[http://learningsparql.com/2ndeditionexamples/ex043.ttl][ex-43]],  [[http://learningsparql.com/2ndeditionexamples/ex044.ttl][ex-44]] ,  [[http://learningsparql.com/2ndeditionexamples/ex045.ttl][ex-45]]
+#+BEGIN_SRC
+@prefix ab:   <http://learningsparql.com/ns/addressbook#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+ab:Musician
+      rdf:type rdfs:Class ;
+      rdfs:label "Musician" ;
+      rdfs:comment "Someone who plays a musical instrument" .
+
+ab:MusicalInstrument
+      a rdfs:Class ;
+      rdfs:label "musical instrument" .
+
+ab:playsInstrument
+      rdf:type rdf:Property ;
+      rdfs:comment "Identifies the instrument that someone plays" ;
+      rdfs:label "plays instrument" ;
+      rdfs:domain ab:Musician ;
+      rdfs:range ab:MusicalInstrument .
+
+ab:i0432 ab:firstName     "Richard" ;
+        ab:lastName       "Mutt" ;
+        ab:postalCode     "49345" ;
+        ab:city           "Springfield" ;
+        ab:homeTel        "(229) 276-5135" ;
+        ab:streetAddress  "32 Main St." ;
+        ab:region         "Connecticut" ;
+        ab:email          "richard49@hotmail.com" ;
+        ab:playsInstrument ab:vacuumCleaner .
+
+#+END_SRC
+- The author declares an ab: playsInstrument property
+- The rdfs: domain property means that if we use this ab: palysInstrument property in a triple, then the subject of the triple is an ab: Musician
+- The rdfs: range property means that the object of such a triple is an ab: MusicalInstrument
+- In traditional Object-Oriented thinking, if we say "members of class Musician have a playsInstrument property", this means that a member of the Musician class must have a playsInstrumentValue
+- RDFS and OWL approach this from the opposite direction: the last 2 triples of ab:playsInstrument tell us that if something has a playsInstrument value, then it's a member of class ab:Musician and the playsInstrument value is a member of class ab:MuscialInstrument.
+- *Using semantic web standards, by adding one property to the metatdata about the existing resource ab:i0432, that resource becomes a member of a class that it wasn't a member of before*
+
+***** Advantages
+- Ability of RDF resources to become members of class based on their data values has made semantic web technology popular in areas such as medical research and intelligence agencies.
+- Researchers can accumulate data with little apparent structure and then see what structure turns out to be there.
+- That is, which resources turn out to be members of which classes and what their relationships are.
+- RDFS lets you define classes as subclasses of other ones and unlike object-oriented systems also lets us define properties as subproperties of one another.
+  - This broadens the possiblities for how you can use SPARQL to retrieve information.
+**** OWL
+- W3C's Web Ontology Language, abbreviated as OWL.
+- OWL builds on RDFS to let you define ontologies.
+***** What is an Ontology?
+Ontologies are formal definitions of vocabularies that allows us to define complex structures as well as new relationships between vocabulary terms and between members of the clases that you define
+- Ontology are collection of triples.
+***** Example
+ [[http://learningsparql.com/2ndeditionexamples/ex045.ttl][ex-45]]
+#+BEGIN_SRC
+@prefix ab:   <http://learningsparql.com/ns/addressbook#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+
+ab:i0432
+   ab:firstName "Richard" ;
+   ab:lastName  "Mutt" ;
+   ab:spouse    ab:i9771 .
+
+ab:i8301
+   ab:firstName "Craig" ;
+   ab:lastName  "Ellis" ;
+   ab:patient   ab:i9771 .
+
+ab:i9771
+   ab:firstName "Cindy" ;
+   ab:lastName  "Marshall" .
+
+ab:spouse
+   rdf:type owl:SymmetricProperty ;
+   rdfs:comment "Identifies someone's spouse" .
+
+ab:patient
+   rdf:type rdf:Property ;
+   rdfs:comment "Identifies a doctor's patient" .
+
+ab:doctor
+   rdf:type rdf:Property ;
+   rdfs:comment "Identifies a doctor treating the named resource" ;
+   owl:inverseOf ab:patient .
+#+END_SRC
+
+- In the above example we have property "spouse" and we are owl:Symmetric property, meaning works both ways.
+- Similarly we have properties "patient" and "doctor", which are inverse of each other.
